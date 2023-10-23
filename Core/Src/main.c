@@ -23,7 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "telnet_server.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

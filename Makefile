@@ -22,8 +22,8 @@ TARGET = Telnet_4
 # debug build?
 DEBUG = 1
 # optimization
-OPT = -Og
-
+#OPT = -Og
+OPT = -O0
 
 #######################################
 # paths

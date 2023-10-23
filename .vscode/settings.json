@@ -1,0 +1,9 @@
+{
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "c:\\STproject\\Telnet_4\\build",
+            "binaryPath": "c:\\STproject\\Telnet_4\\build\\Telnet_4.elf",
+            "binaryArgs": []
+        }
+    ]
+}
