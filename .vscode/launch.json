@@ -11,6 +11,8 @@
             "request": "launch",
             "type": "cortex-debug",
             "runToEntryPoint": "main",
+            "cpu": "cortex-m3",
+            "device": "STM32F217.svd",
             "servertype": "stlink"
         }
     ]

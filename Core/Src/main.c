@@ -24,6 +24,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "telnet_server.h"
+#include <string.h>
+#include "api.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,7 +68,10 @@ void StartDefaultTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
+  }
+static void (TNcommand_callback) ( uint8_t* cmd,  uint16_t len ){
+  }
 /* USER CODE END 0 */
 
 /**
@@ -272,6 +277,7 @@ void StartDefaultTask(void *argument)
   /* init code for LWIP */
   MX_LWIP_Init();
   /* USER CODE BEGIN 5 */
+  telnet_create(23, TNreceiver_callback, TNcommand_callback);
   /* Infinite loop */
   for(;;)
   {

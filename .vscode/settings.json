@@ -5,5 +5,8 @@
             "binaryPath": "c:\\STproject\\Telnet_4\\build\\Telnet_4.elf",
             "binaryArgs": []
         }
-    ]
+    ],
+    "files.associations": {
+        "telnet_server.h": "c"
+    }
 }

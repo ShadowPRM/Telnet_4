@@ -46,6 +46,7 @@
 
 // LwIP includes
 #include "lwip/api.h"
+#include "main.h"
 
 
 #include "telnet_server.h"
@@ -190,7 +191,7 @@ static void wrt_task (void *arg)
 		  for(;;)
 		  {
 			  netconn_close (instance->conn); // Stop listening.
-				HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
+			  HAL_GPIO_WritePin(LD3_GPIO_Port,LD3_Pin, GPIO_PIN_SET); 
 			  vTaskDelay( tx_cycle_period );
 
 			  xSemaphoreTake( instance->buff_mutex, portMAX_DELAY );
@@ -224,7 +225,7 @@ static void wrt_task (void *arg)
 		  		return;
 
 		  	netconn_listen(instance->conn);
-			HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(LD2_GPIO_Port,LD2_Pin,GPIO_PIN_SET);
 		  	// Никакой связи все еще не установлено
 		  	instance->status = TELNET_CONN_STATUS_NONE;
 	  }
