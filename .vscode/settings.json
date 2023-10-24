@@ -1,8 +1,16 @@
 {
     "makefile.launchConfigurations": [
         {
-            "cwd": "c:\\STproject\\Telnet_4\\build",
-            "binaryPath": "c:\\STproject\\Telnet_4\\build\\Telnet_4.elf",
+            //"cwd": "c:\\STproject\\Telnet_4\\build",
+            "cwd": "C:\\Users\\user\\STM32CubeIDE\\workspace_1.7.0\\Telnet_4\\build",
+            "binaryPath": "C:\\Users\\user\\STM32CubeIDE\\workspace_1.7.0\\Telnet_4\\build\\Telnet_4.elf",
+            //"binaryPath": "c:\\STproject\\Telnet_4\\build\\Telnet_4.elf",
+            
+            "binaryArgs": []
+        },
+        {
+            "cwd": "c:\\Users\\user\\STM32CubeIDE\\workspace_1.7.0\\Telnet_4\\build",
+            "binaryPath": "c:\\Users\\user\\STM32CubeIDE\\workspace_1.7.0\\Telnet_4\\build\\Telnet_4.elf",
             "binaryArgs": []
         }
     ],

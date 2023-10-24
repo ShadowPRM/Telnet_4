@@ -57,6 +57,7 @@
 static telnet_t telnet_instance;
 static telnet_t* instance = &telnet_instance;
 
+
 /*
  *  Период опроса буфера TX = 10 мс
  *
@@ -109,7 +110,6 @@ void telnet_create( uint16_t port,
 
 	// Stores the port of the TCP connection to the global array
 	instance->tcp_port = port;
-	//HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 
 	// Starts local listening
 	instance->conn = netconn_new_with_callback(NETCONN_TCP, netconn_cb);
@@ -128,7 +128,7 @@ void telnet_create( uint16_t port,
 	// Create the accept sentd task
 	instance->wrt_task_handle = osThreadNew(wrt_task, NULL, &wrt_task_attributes);
 	instance->rcv_task_handle = osThreadNew(rcv_task, NULL, &rcv_task_attributes);
-	//HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 }
 
 
@@ -187,16 +187,18 @@ static void wrt_task (void *arg)
 	  accept_err = netconn_accept(instance->conn, &instance->newconn);
 	  if( accept_err == ERR_OK )
 	  {
+		  telnet_transmit("Hi user! Press to Enter...\r\n", 28);
+		  //tn_client.tn_etap=0;
 		  // Transfer loop
 		  for(;;)
 		  {
 			  netconn_close (instance->conn); // Stop listening.
-			  HAL_GPIO_WritePin(LD3_GPIO_Port,LD3_Pin, GPIO_PIN_SET); 
+			  HAL_GPIO_TogglePin(LD3_GPIO_Port,LD3_Pin); 
 			  vTaskDelay( tx_cycle_period );
 
 			  xSemaphoreTake( instance->buff_mutex, portMAX_DELAY );
 
-			  // Check the connections status before send bytes, if any
+			  // Проверьте статус соединений перед отправкой байтов, если таковые имеются
 			  if( instance->status == TELNET_CONN_STATUS_CONNECTED && instance->buff_count > 0 )
 				  netconn_write(instance->newconn, instance->buff, instance->buff_count, NETCONN_COPY);
 
@@ -209,14 +211,15 @@ static void wrt_task (void *arg)
 				  break;
 
 		  }
-
+			
 		  netconn_close (instance->newconn);
 		  netconn_delete(instance->newconn);
-
+			
 		  // Start listening again
 		  netconn_delete(instance->conn);
-
+			//HAL_GPIO_WritePin(LD1_GPIO_Port,LD1_Pin,GPIO_PIN_SET);
 		  instance->conn = netconn_new_with_callback(NETCONN_TCP, netconn_cb);
+
 		  if( instance->conn == NULL )
 		  		return;
 
@@ -225,7 +228,7 @@ static void wrt_task (void *arg)
 		  		return;
 
 		  	netconn_listen(instance->conn);
-			HAL_GPIO_WritePin(LD2_GPIO_Port,LD2_Pin,GPIO_PIN_SET);
+			
 		  	// Никакой связи все еще не установлено
 		  	instance->status = TELNET_CONN_STATUS_NONE;
 	  }
@@ -248,14 +251,16 @@ static void rcv_task (void *arg)
 
 	for(;;)
 	{
+		
 
 		if( instance->status != TELNET_CONN_STATUS_CONNECTED )
 		{
-			vTaskDelay(100); // *do nothing* delay if there is no connection.
+			vTaskDelay(100); // * ничего не делай* задержка, если нет соединения.
+			
 		}
 		else
 		{
-			// Iteratively reads all the available data
+			// Итеративно считывает все доступные данные
 			recv_err = netconn_recv(instance->newconn, &rx_netbuf);
 			if ( recv_err == ERR_OK)
 			{
@@ -264,7 +269,7 @@ static void rcv_task (void *arg)
 				{
 					netbuf_data(rx_netbuf, &rx_data, &rx_data_len);
 					process_incoming_bytes (rx_data, rx_data_len, instance);
-
+					HAL_GPIO_TogglePin(LD1_GPIO_Port,LD1_Pin);
 				}while(  netbuf_next(rx_netbuf) >= 0 );
 
 				netbuf_delete( rx_netbuf );

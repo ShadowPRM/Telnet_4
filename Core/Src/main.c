@@ -49,7 +49,7 @@ UART_HandleTypeDef huart3;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -68,7 +68,39 @@ void StartDefaultTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+struct tn_user 
+{
+  char nameUser[8];
+  char pasUser[8];
+  char tn_etap;
+};
+ 
+struct tn_user tn_admin = {.nameUser="admin", .pasUser="admin", .tn_etap=0};
+struct tn_user tn_client = {.nameUser=0, .pasUser=0, .tn_etap=0};
+
 static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
+  if (tn_client.tn_etap==0){
+    telnet_transmit("User Name: ", 11);
+    tn_client.tn_etap=1;
+    return;
+  }
+  else if (tn_client.tn_etap==1){
+    memccpy(tn_client.nameUser, buff, '\0', 6);
+    telnet_transmit("User pasw: ", 11);
+    tn_client.tn_etap=2;
+    return;
+  }
+  else if (tn_client.tn_etap==2){
+    memccpy(tn_client.pasUser, buff, '\0', 6);
+    if ( (tn_client.nameUser == tn_admin.nameUser) && (tn_client.pasUser == tn_admin.pasUser) ){
+      telnet_transmit("URA !\r\n", 7);
+    }
+    
+    tn_client.tn_etap=3;
+    return;
+  }
+  //HAL_UART_Transmit(&huart3, buff, len, 10);
+  
   }
 static void (TNcommand_callback) ( uint8_t* cmd,  uint16_t len ){
   }
@@ -262,7 +294,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+extern struct netif gnetif;
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -277,6 +309,12 @@ void StartDefaultTask(void *argument)
   /* init code for LWIP */
   MX_LWIP_Init();
   /* USER CODE BEGIN 5 */
+  char buf_uart [64];
+
+  HAL_UART_Transmit(&huart3, (uint8_t*)"LWIP comlite!\r\n", 15, 10);
+  sprintf(buf_uart, "My ip: %s\r\n", ip4addr_ntoa(&gnetif.ip_addr));
+  HAL_UART_Transmit(&huart3, buf_uart, strlen(buf_uart), 10);
+
   telnet_create(23, TNreceiver_callback, TNcommand_callback);
   /* Infinite loop */
   for(;;)

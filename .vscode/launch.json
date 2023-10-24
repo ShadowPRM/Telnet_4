@@ -5,6 +5,56 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/Telnet_4.elf",
+            "name": "Debug JLink",
+            "request": "launch",
+            "type": "cortex-debug",
+            "serverpath": "C:/VSARM/JLink/JLinkGDBServerCL.exe",
+            "cpu": "cortex-m3",
+            "device": "STM32F207ZG",
+            "interface": "swd",
+            "runToEntryPoint": "main",
+            "showDevDebugOutput": "none",
+            "svdFile": "${workspaceFolder}/STM32F217.svd",
+            "servertype": "jlink"
+        },
+        {
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/Telnet_4.elf",
+            "name": "Attach JLink",
+            "request": "attach",
+            "type": "cortex-debug",
+            "serverpath": "C:/VSARM/JLink/JLinkGDBServerCL.exe",
+            "cpu": "cortex-m3",
+            "device": "STM32F207ZG",
+            "interface": "swd",
+            "runToEntryPoint": "main",
+            "showDevDebugOutput": "none",
+            "svdFile": "${workspaceFolder}/STM32F217.svd",
+            "servertype": "jlink"
+        },
+        {
+            "cwd": "${workspaceFolder}",
+            "executable": "./build/Telnet_4.elf",
+            "name": "Debug with ST-Util",
+            "request": "attach",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "showDevDebugOutput": "none",
+            "servertype": "stutil"
+        },
+        {
+            "cwd": "${workspaceFolder}",
+            "executable": "./build/Telnet_4.elf",
+            "name": "Debug with ST-Link",
+            "request": "attach",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "showDevDebugOutput": "none",
+            "servertype": "stlink"
+        },
+        {
             "name": "Cortex Debug",
             "cwd": "${workspaceFolder}",
             "executable": "./build/Telnet_4.elf",
