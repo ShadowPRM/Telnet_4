@@ -37,8 +37,10 @@
  */
 
 /* 1 TAB = 4 Spaces */
+
 #ifndef __TELNET_H__
 #define __TELNET_H__
+
 
 #include "FreeRTOS.h"
 #include "stream_buffer.h"
@@ -48,7 +50,9 @@
 // LwIP includes
 #include "lwip/api.h"
 
+
 #define TELNET_BUFF_SIZE 1024
+
 
 typedef struct
 {
@@ -95,9 +99,9 @@ typedef struct
  *                           In this case, user is responsible to filter commands form
  *                           characters.
  */
-void telnet_create(uint16_t port,
-                    void (*receiver_callback)(uint8_t* buff, uint16_t len),
-                    void (*command_callback)(uint8_t* cmd,  uint16_t len));
+void telnet_create( uint16_t port,
+                    void (*receiver_callback)( uint8_t* buff, uint16_t len ),
+                    void (*command_callback) ( uint8_t* cmd,  uint16_t len )  );
 
 
 /**
@@ -112,4 +116,6 @@ uint16_t telnet_transmit(uint8_t* data, uint16_t len);
 
 
 #endif /* __TELNET_H__ */
+
+
 #endif /* INC_TELNET_SERVER_H_ */

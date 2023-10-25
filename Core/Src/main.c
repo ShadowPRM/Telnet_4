@@ -35,6 +35,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define SIZE_LOGIN 16
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -68,35 +69,60 @@ void StartDefaultTask(void *argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
 struct tn_user 
 {
-  char nameUser[8];
-  char pasUser[8];
-  char tn_etap;
+  char name[SIZE_LOGIN];
+  char pas[SIZE_LOGIN];
+  char etap;
 };
  
-struct tn_user tn_admin = {.nameUser="admin", .pasUser="admin", .tn_etap=0};
-struct tn_user tn_client = {.nameUser=0, .pasUser=0, .tn_etap=0};
+
+struct tn_user tn_client = {0, 0, 0};
 
 static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
-  if (tn_client.tn_etap==0){
-    telnet_transmit("User Name: ", 11);
-    tn_client.tn_etap=1;
+  struct tn_user tn_admin = {"admin", "admin", 0};
+  char bufTN[64];
+  buff[len]=NULL;
+
+  uint8_t lenbufTN;
+  if (tn_client.etap==0){
+    telnet_transmit((uint8_t*)("User Name: "), 11);
+    tn_client.etap=1;
     return;
   }
-  else if (tn_client.tn_etap==1){
-    memccpy(tn_client.nameUser, buff, '\0', 6);
-    telnet_transmit("User pasw: ", 11);
-    tn_client.tn_etap=2;
+  else if (tn_client.etap==1){
+    memcpy(tn_client.name, buff, len);
+    tn_client.etap=2;
     return;
   }
-  else if (tn_client.tn_etap==2){
-    memccpy(tn_client.pasUser, buff, '\0', 6);
-    if ( (tn_client.nameUser == tn_admin.nameUser) && (tn_client.pasUser == tn_admin.pasUser) ){
-      telnet_transmit("URA !\r\n", 7);
+  else if (tn_client.etap==2){
+    telnet_transmit((uint8_t*)("User pasw: "), 11);
+    tn_client.etap=3;
+    return;
+  }
+  else if (tn_client.etap==3){
+    memcpy(tn_client.pas, buff, strlen(buff));
+    tn_client.etap=4;
+    return;
+  }
+  else if (tn_client.etap==4){
+    if (!( (memcmp(tn_client.name, tn_admin.name,SIZE_LOGIN))||(memcmp(tn_client.pas, tn_admin.pas,SIZE_LOGIN)) ) ) {
+      HAL_GPIO_WritePin(LD3_GPIO_Port,LD3_Pin,1);
+      lenbufTN = sprintf(bufTN, "\r\nHi, %s!\r\n", tn_client.name);
+      telnet_transmit(bufTN, lenbufTN);
+      tn_client.etap=5;
     }
-    
-    tn_client.tn_etap=3;
+    else {
+      lenbufTN = sprintf(bufTN, "\r\nIdi nah, %s!!!\r\n", tn_client.name);
+      telnet_transmit(bufTN, lenbufTN);
+      tn_client.etap=0;
+    }
+    return;
+  }
+  else if (tn_client.etap==5){
+    telnet_transmit((uint8_t*)("Pozdravlyau !\r\n"), 15);
+    tn_client.etap=0;
     return;
   }
   //HAL_UART_Transmit(&huart3, buff, len, 10);
@@ -313,9 +339,10 @@ void StartDefaultTask(void *argument)
 
   HAL_UART_Transmit(&huart3, (uint8_t*)"LWIP comlite!\r\n", 15, 10);
   sprintf(buf_uart, "My ip: %s\r\n", ip4addr_ntoa(&gnetif.ip_addr));
-  HAL_UART_Transmit(&huart3, buf_uart, strlen(buf_uart), 10);
+  HAL_UART_Transmit(&huart3, (uint8_t*)buf_uart, strlen(buf_uart), 10);
 
   telnet_create(23, TNreceiver_callback, TNcommand_callback);
+  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
   /* Infinite loop */
   for(;;)
   {
