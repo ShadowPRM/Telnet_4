@@ -25,6 +25,7 @@
 /* USER CODE BEGIN Includes */
 #include "telnet_server.h"
 #include <string.h>
+#include <stdio.h>
 #include "api.h"
 #include "mcli.h"
 /* USER CODE END Includes */
@@ -56,6 +57,29 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
+//////////////////////////////////////////////////////////
+//для теста парсинга
+char a[] = "mars";
+char b[] = "marsian";
+char c[] = "earth";
+char d[] = "\0";
+char e[] = "ololo";
+
+const char d0[] = "";
+const char d1[] = " ,_,\"";
+
+char f[] = "   Mars is_not_a \"star\"";
+
+char tst_cmd_str1[] = "rm -rf /";
+char tst_cmd_str2[] = "cmd0 a b c";
+char tst_cmd_str3[] = "cmd1 ololo ololo";
+char tst_cmd_str4[] = "cmd0 a \"b c\" d \"e f\" gg";
+char tst_cmd_str5[] = "cmd0 a \"b\"\"c\" d \"e f\" gg";
+char tst_cmd_str6[] = "cmd0 a b \"c";
+char tst_cmd_str7[] = "cmd1";
+
+
+//////////////////////////////////////////////////////////
 
 /* USER CODE END PV */
 
@@ -66,7 +90,33 @@ static void MX_USART3_UART_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
+//////////////////////////////////////////////////////////
+//для теста парсинга
+int tst_cmd_main(int argc, char ** argv){
+    while (argc--){
+        printf("%s\n", *argv++);
+    }
+    return 0;
+}
 
+mcli_cmd_st tst_cmd[] = {
+    {
+        .name = "cmd0",
+        .desc = "Test command 0",
+        .cmain = tst_cmd_main
+    },
+    {
+        .name = "cmd1",
+        .desc = "Test command 1",
+        .cmain = tst_cmd_main
+    }
+};
+
+char * abuf[] = {0,0,0,0,0,0,0,0,0,0};
+
+MCLI_SHELL_DECL(tst_shell, tst_cmd, abuf);
+
+//////////////////////////////////////////////////////////
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -113,15 +163,15 @@ static int16_t comUserPars(uint8_t* buffCom, uint16_t lenCom){
 }
 
 static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
+
   //В логине и пароле используются символы латиницы и цифры
   //но проверяется только первый символ
   //хорошо бы проверять все символы!
   char bufTN[64];
   //int16_t res=0;
   uint8_t lenbufTN;
-
-  switch (tn_client.etap){
   
+  switch (tn_client.etap){
     case 0:
       telnet_transmit((uint8_t*)("User Name> "), 11);
       tn_client.etap=1;
@@ -153,7 +203,7 @@ static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
     case 4: //сюда заходит по \r\n
       //сравнение введённого логина с заложеным
       if (!( (memcmp(tn_client.name, tn_admin.name,(SIZE_LOGIN-1)))||(memcmp(tn_client.pas, tn_admin.pas,(SIZE_LOGIN-1))) ) ) {
-        lenbufTN = sprintf(bufTN, "\r\nHi, %s! Press to Enter...\r\n", tn_client.name);
+        lenbufTN = sprintf(bufTN, "\r\nHi, %s! Enter the Command...\r\n", tn_client.name);
         telnet_transmit((uint8_t*)(bufTN), lenbufTN);
         tn_client.etap=5;
       }
@@ -166,17 +216,94 @@ static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
   
     case 5:
       if (buff[0]<0x30){tn_client.etap=5;}
-      else {comUserPars(buff,len);
-        /*if (res != 0) {
-          lenbufTN = sprintf(bufTN, "Size: %d", res);
+      else {
+        
+        /*strtok*/
+        
+        char * s;
+        s = f;
+        /*
+        while (s - f < sizeof(f)){
+          int i;
+          i = MCLI_STRTOK(&s, d0, sizeof(f) - (s - f));
+          if (i < 0){
+            lenbufTN = sprintf(bufTN,"Error!\r\n");
+            telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+            break;
+          }
+          s[i] = 0;
+          if (i){
+            lenbufTN = sprintf(bufTN,"The token is: %s, %d\r\n", s, i);
+            telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+          }
+          s += i + 1;
+        }
+
+        s = f;
+        while (s - f < sizeof(f)){
+          int i;
+          i = MCLI_STRTOK(&s, d1, sizeof(f) - (s - f));
+          if (i < 0){
+            lenbufTN = sprintf(bufTN,"Error!\r\n");
+            telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+            break;
+          }
+          lenbufTN = sprintf(bufTN,"Delimiter is: \"%c\"\r\n", s[i]);
           telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-        }*/
+          s[i] = 0;
+          if (i){
+            lenbufTN = sprintf(bufTN,"The token is: %s, %d\r\n", s, i);
+            telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+          }
+          s += i + 1;
+        }
+
+    s = d;
+    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 0) = %d\r\n", d, MCLI_STRTOK(&s, d1, sizeof(d)));
+    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+    s = d1;
+    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 4) = %d\r\n", d1, MCLI_STRTOK(&s, d1, sizeof(d1)));
+    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+    s = e;
+    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 0) = %d\r\n", e, MCLI_STRTOK(&s, d1, 0));
+    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+    s = e;
+    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, *) = %d\r\n", e, MCLI_STRTOK(&s, d1, sizeof(e)));
+    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+    */
+    s = f;
+    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 2) = %d\r\n", f, MCLI_STRTOK(&s, d1, 2));
+    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+    s = f;
+    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 4) = %d\r\n", f, MCLI_STRTOK(&s, d1, 4));
+    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+    s = f;
+    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 4) = %d_%s_\r\n", f, MCLI_STRTOK(&s, d1, sizeof(f)),&s);
+    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+
+    
+    s = f;
+    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 4) = %d\r\n", f, MCLI_STRTOK(&s, d1, 7));
+    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+
+        //lenbufTN = sprintf(bufTN, "CMP(%s, %s) = %d error\r\n", a, a, mcli_strcmp(a, a, 0));
+        //telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+
+
+            //lenbufTN = sprintf(bufTN, "Size: %d", res);
+        //telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+        //comUserPars(buff,len);
+        // if (res != 0) {
+        //   lenbufTN = sprintf(bufTN, "Size: %d", res);
+        //   telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+        // }
       }
       break;
 
     default:
       break;
   }
+
 }
 
 static void (TNcommand_callback) ( uint8_t* cmd,  uint16_t len ){

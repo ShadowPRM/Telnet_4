@@ -47,6 +47,7 @@
 #include "main.h"
 
 #include "telnet_server.h"
+#include "mcli.h"
 
 // Текущая реализация позволяет только одно одно соединение Telnet (один экземпляр).
 static telnet_t telnet_instance;
