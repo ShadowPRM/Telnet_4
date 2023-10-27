@@ -162,7 +162,7 @@ void netconn_cb(struct netconn *conn, enum netconn_evt evt, u16_t len)
 static void wrt_task(void *arg)
 {
     err_t accept_err;
-    err_t err;
+    //err_t err;
 
     // create the buffer to accumulate bytes to be sent
     instance->buff       = (uint8_t *)pvPortMalloc(sizeof(uint8_t) * TELNET_BUFF_SIZE);
@@ -180,7 +180,7 @@ static void wrt_task(void *arg)
         if (accept_err == ERR_OK)
         {
             telnet_transmit((uint8_t*)("Hi user! Press to Enter...\r\n"), 28);
-            //tn_client.tn_etap=0;
+			
             // Transfer loop
             for(;;)
             {
@@ -326,10 +326,12 @@ uint16_t telnet_transmit(uint8_t* data, uint16_t len)
  */
 static void process_incoming_bytes (uint8_t *data, int data_len, telnet_t* inst_ptr)
 {
-    const uint8_t IAC  = 255; // See RFC 854 for details
-    const uint8_t WILL = 251;
+    //по наблюдениям из Шарк: команды состоят из 3 байт, идущих подряд:	0xff 'команда' 'значение клманды'
+	const uint8_t IAC  = 255; // See RFC 854 for details
+    const uint8_t WILL = 251; //Подкоманда: договориться о размере окна (и другие)
     const uint8_t DONT = 254;
     //const uint8_t SB   = 254; TODO: Parse Subnegotiation commands.
+	//253 - Эхо
 
     uint8_t* pbuf_payload = data;
     uint16_t pbuf_len     = data_len;
@@ -346,16 +348,19 @@ static void process_incoming_bytes (uint8_t *data, int data_len, telnet_t* inst_
     else
     {
         //If command callback IS defined, all bytes are filtered out from the characters
+		//Если определяется командный обратный вызов, все байты отфильтрованы из символов
         uint16_t char_offset   = 0;
         uint16_t char_ctr      = 0;
 
         for (int i = 0; i < pbuf_len; i++)
         {
             // Counting characters: Command buffer is empty and IAC not found
+			// подсчет символов: командный буфер пуст, а IAC не найден
             if ((inst_ptr->cmd_len == 0) && (pbuf_payload[i] != IAC))
             {
                 ++char_ctr;
                 // Counting command bytes
+				// подсчет командных байтов
             }
             else
             {

@@ -26,6 +26,7 @@
 #include "telnet_server.h"
 #include <string.h>
 #include "api.h"
+#include "mcli.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -35,7 +36,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define SIZE_LOGIN 16
+#define SIZE_LOGIN 17
+#define SIZE_COMM 4
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -76,58 +78,107 @@ struct tn_user
   char pas[SIZE_LOGIN];
   char etap;
 };
- 
 
-struct tn_user tn_client = {0, 0, 0};
+struct comUser{
+  char com1[SIZE_COMM];
+  char com2[SIZE_COMM];
+  char com3[SIZE_COMM];
+  char com4[SIZE_COMM];
+};
+
+struct tn_user tn_client = {{0,}, {0,}, 0};
+struct tn_user tn_admin = {"admin", "admin", 0};
+struct tn_user tn_vadim = {"vadim", "qwerty", 0};
+
+struct comUser comGpio = {"led","on", "off", "?"};
+
+static int16_t comUserPars(uint8_t* buffCom, uint16_t lenCom){
+  struct comUser prishli;
+  uint16_t posSpace[8]={0,};
+  uint16_t countB=0;
+  uint16_t countS=0;
+  //uint8_t buffPars[]=buffCom;
+  char bufPars[64];
+  uint8_t lenbufPars;
+
+    for (countB=1; countB<lenCom; countB++){
+      if (buffCom[countB]==' '){posSpace[countS++]=countB;}
+    }
+    strncpy(prishli.com1, (char*)buffCom, posSpace[0]);
+    strncpy(prishli.com2, (char*)(buffCom+posSpace[0]+1), (lenCom-posSpace[0]-1));
+    lenbufPars = sprintf(bufPars, "Com1:%s|Com2:%s\r\n", prishli.com1, prishli.com2);
+    telnet_transmit((uint8_t*)(bufPars), lenbufPars);
+    osDelay(5);
+    return (int16_t)(countS);
+}
 
 static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
-  struct tn_user tn_admin = {"admin", "admin", 0};
+  //В логине и пароле используются символы латиницы и цифры
+  //но проверяется только первый символ
+  //хорошо бы проверять все символы!
   char bufTN[64];
-  buff[len]=NULL;
-
+  //int16_t res=0;
   uint8_t lenbufTN;
-  if (tn_client.etap==0){
-    telnet_transmit((uint8_t*)("User Name: "), 11);
-    tn_client.etap=1;
-    return;
-  }
-  else if (tn_client.etap==1){
-    memcpy(tn_client.name, buff, len);
-    tn_client.etap=2;
-    return;
-  }
-  else if (tn_client.etap==2){
-    telnet_transmit((uint8_t*)("User pasw: "), 11);
-    tn_client.etap=3;
-    return;
-  }
-  else if (tn_client.etap==3){
-    memcpy(tn_client.pas, buff, strlen(buff));
-    tn_client.etap=4;
-    return;
-  }
-  else if (tn_client.etap==4){
-    if (!( (memcmp(tn_client.name, tn_admin.name,SIZE_LOGIN))||(memcmp(tn_client.pas, tn_admin.pas,SIZE_LOGIN)) ) ) {
-      HAL_GPIO_WritePin(LD3_GPIO_Port,LD3_Pin,1);
-      lenbufTN = sprintf(bufTN, "\r\nHi, %s!\r\n", tn_client.name);
-      telnet_transmit(bufTN, lenbufTN);
-      tn_client.etap=5;
-    }
-    else {
-      lenbufTN = sprintf(bufTN, "\r\nIdi nah, %s!!!\r\n", tn_client.name);
-      telnet_transmit(bufTN, lenbufTN);
-      tn_client.etap=0;
-    }
-    return;
-  }
-  else if (tn_client.etap==5){
-    telnet_transmit((uint8_t*)("Pozdravlyau !\r\n"), 15);
-    tn_client.etap=0;
-    return;
-  }
-  //HAL_UART_Transmit(&huart3, buff, len, 10);
+
+  switch (tn_client.etap){
   
+    case 0:
+      telnet_transmit((uint8_t*)("User Name> "), 11);
+      tn_client.etap=1;
+      break;
+  
+    case 1: //сюда заходит по имени
+      if (buff[0]<0x30) {tn_client.etap=1;} //если не имя, ждём ещё раз
+      else {
+        memset(tn_client.name,'\0',SIZE_LOGIN); //очистка
+        memcpy(tn_client.name, buff, len);
+        tn_client.etap=2;
+      }
+      break;
+    
+    case 2: //сюда заходит по \r\n
+      telnet_transmit((uint8_t*)("User pasw> "), 11);
+      tn_client.etap=3;
+      break;
+  
+    case 3: //заходит по паролю
+      if (buff[0]<0x30) {tn_client.etap=3;} //если не пароль, ждём ещё раз
+      else {
+        memset(tn_client.pas,'\0', SIZE_LOGIN);
+        memcpy(tn_client.pas, buff, len);
+        tn_client.etap=4;
+      }
+      break;
+  
+    case 4: //сюда заходит по \r\n
+      //сравнение введённого логина с заложеным
+      if (!( (memcmp(tn_client.name, tn_admin.name,(SIZE_LOGIN-1)))||(memcmp(tn_client.pas, tn_admin.pas,(SIZE_LOGIN-1))) ) ) {
+        lenbufTN = sprintf(bufTN, "\r\nHi, %s! Press to Enter...\r\n", tn_client.name);
+        telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+        tn_client.etap=5;
+      }
+      else {
+        lenbufTN = sprintf(bufTN, "\r\nIdi nah, %s!!! Press to Enter...\r\n", tn_client.name);
+        telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+        tn_client.etap=0;
+      }
+      break;
+  
+    case 5:
+      if (buff[0]<0x30){tn_client.etap=5;}
+      else {comUserPars(buff,len);
+        /*if (res != 0) {
+          lenbufTN = sprintf(bufTN, "Size: %d", res);
+          telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+        }*/
+      }
+      break;
+
+    default:
+      break;
   }
+}
+
 static void (TNcommand_callback) ( uint8_t* cmd,  uint16_t len ){
   }
 /* USER CODE END 0 */
