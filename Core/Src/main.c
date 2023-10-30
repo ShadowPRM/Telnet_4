@@ -66,7 +66,7 @@ char d[] = "\0";
 char e[] = "ololo";
 
 const char d0[] = "";
-const char d1[] = " ,_,\"";
+const char d1[] = " ,_.\"";
 
 char f[] = "   Mars is_not_a \"star\"";
 
@@ -93,20 +93,30 @@ void StartDefaultTask(void *argument);
 //////////////////////////////////////////////////////////
 //для теста парсинга
 int tst_cmd_main(int argc, char ** argv){
-    while (argc--){
-        printf("%s\n", *argv++);
+    char bufPars[64];
+    char comand1[8]= *argv;
+    char comand2[8]= *argv+1;
+  uint8_t lenbufPars;
+
+    if (comand1=="led3") {
+      HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
     }
-    return 0;
+    while (argc--){
+        lenbufPars = sprintf(bufPars,"%s\r\n", *argv++);
+        telnet_transmit((uint8_t*)(bufPars), lenbufPars);
+    }
+    
+    return 77;
 }
 
 mcli_cmd_st tst_cmd[] = {
     {
-        .name = "cmd0",
+        .name = "led1",
         .desc = "Test command 0",
         .cmain = tst_cmd_main
     },
     {
-        .name = "cmd1",
+        .name = "led3",
         .desc = "Test command 1",
         .cmain = tst_cmd_main
     }
@@ -217,74 +227,24 @@ static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
     case 5:
       if (buff[0]<0x30){tn_client.etap=5;}
       else {
-        
-        /*strtok*/
-        
-        char * s;
-        s = f;
-        /*
-        while (s - f < sizeof(f)){
-          int i;
-          i = MCLI_STRTOK(&s, d0, sizeof(f) - (s - f));
-          if (i < 0){
-            lenbufTN = sprintf(bufTN,"Error!\r\n");
-            telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-            break;
-          }
-          s[i] = 0;
-          if (i){
-            lenbufTN = sprintf(bufTN,"The token is: %s, %d\r\n", s, i);
-            telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-          }
-          s += i + 1;
-        }
+        // int mcli_strlen(a, sizeof(a)) - выводит колво символов в строке а, если оно не больше 2го арг, иначе ошибка, а так же провер, не пустая ли строка а
+        // int mcli_strcmp(a, a, sizeof(a)) - сравнивает строки 1й и 2й аргумент и входит ли он в размер 3й арг. Возв: 0-равны и входит,1-не равны,менше 0 -ошибка
+        // _mcli_is_in - проверяет символ строки, идентичен ли контрольному символу из строки d1. Возвращ: 1-да, 0-нет.
+        // MCLI_STRTOK(pts, d, slim) (mcli_strtok(pts, d, slim, sizeof(d) - 1))
+        // int mcli_strtok(char ** pts,const char * d, int slim, int dlen);
+        // - находит в строке Арг1 символы строки Арг2 с ограничением длины проверки Арг3
+        // - возвращает колво символов литерации, если они входят в ограничение Арг3
+        //
+   
 
-        s = f;
-        while (s - f < sizeof(f)){
-          int i;
-          i = MCLI_STRTOK(&s, d1, sizeof(f) - (s - f));
-          if (i < 0){
-            lenbufTN = sprintf(bufTN,"Error!\r\n");
-            telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-            break;
-          }
-          lenbufTN = sprintf(bufTN,"Delimiter is: \"%c\"\r\n", s[i]);
-          telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-          s[i] = 0;
-          if (i){
-            lenbufTN = sprintf(bufTN,"The token is: %s, %d\r\n", s, i);
-            telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-          }
-          s += i + 1;
-        }
-
-    s = d;
-    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 0) = %d\r\n", d, MCLI_STRTOK(&s, d1, sizeof(d)));
-    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-    s = d1;
-    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 4) = %d\r\n", d1, MCLI_STRTOK(&s, d1, sizeof(d1)));
-    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-    s = e;
-    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 0) = %d\r\n", e, MCLI_STRTOK(&s, d1, 0));
-    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-    s = e;
-    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, *) = %d\r\n", e, MCLI_STRTOK(&s, d1, sizeof(e)));
-    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-    */
-    s = f;
-    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 2) = %d\r\n", f, MCLI_STRTOK(&s, d1, 2));
-    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-    s = f;
-    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 4) = %d\r\n", f, MCLI_STRTOK(&s, d1, 4));
-    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-    s = f;
-    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 4) = %d_%s_\r\n", f, MCLI_STRTOK(&s, d1, sizeof(f)),&s);
+    lenbufTN = sprintf(bufTN,"\r\nResult is: %d\r\n", mcli_shell_parse(&tst_shell, (char*)buff, sizeof(tst_cmd_str2)));
     telnet_transmit((uint8_t*)(bufTN), lenbufTN);
 
-    
-    s = f;
-    lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 4) = %d\r\n", f, MCLI_STRTOK(&s, d1, 7));
-    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+    //lenbufTN = sprintf(bufTN,"CMP(%s, %s) = %d\r\n", e, c, mcli_strcmp(a, e, sizeof(e)));
+    //telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+
+    //lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 4) = %d\r\n", f, MCLI_STRTOK(&s, d1, 7));
+    //telnet_transmit((uint8_t*)(bufTN), lenbufTN);
 
         //lenbufTN = sprintf(bufTN, "CMP(%s, %s) = %d error\r\n", a, a, mcli_strcmp(a, a, 0));
         //telnet_transmit((uint8_t*)(bufTN), lenbufTN);

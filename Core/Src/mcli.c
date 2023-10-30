@@ -117,6 +117,7 @@ int mcli_strtok(char ** pts, const char * d, int slim, int dlen)
         return MCLI_ST_EOOBA;
     }
     /*Skip delimiters*/
+    //тут похоже пропускаются начальные символы из d1, т.е. убираются начальные пробелы(сдвигается указатель)
     for(s = *pts; _mcli_is_in(*s, d, dlen); s++)
     {
         if (0 == --slim)
@@ -128,6 +129,7 @@ int mcli_strtok(char ** pts, const char * d, int slim, int dlen)
     /*This is token starting position! Which is "returned" to caller*/
     *pts = s;
     /*Count chars in the token!*/
+    //А тут ищется первый символ строки, совпадающий с контрольными символами из d1
     for (n = 0; _mcli_is_in(*s, d, dlen) == 0; s++, n++)
     {
         if (0 == *s)
@@ -204,7 +206,7 @@ int mcli_shell_parse(mcli_shell_st * shell, char * buf, int lim)
                     is_str ^= 1; /*Toggle the string flag*/
                 }
             }
-            /*Terminate the option only when all strings are closed*/
+            /*Terminate the option only when all strings are closed / Прекратить опцию только тогда, когда все строки закрыты*/
             if (!is_str)
             {
                 t_start[i] = 0;
@@ -213,12 +215,12 @@ int mcli_shell_parse(mcli_shell_st * shell, char * buf, int lim)
 
         t_start += i + 1;/*Skip delimiter*/
     }
-    /*Check for unclosed strings!*/
+    /*Check for unclosed strings! / Проверьте на наличие неподвижных строк!*/
     if (is_str)
     {
         return MCLI_ST_EPARSE;
     }
-    /*Lookup the command.*/
+    /*Lookup the command. / Поиск команды.*/
     for (i = 0; i < shell->csz; i++)
     {
         mcli_cmd_st * cmd;
@@ -226,7 +228,7 @@ int mcli_shell_parse(mcli_shell_st * shell, char * buf, int lim)
         cmd = shell->cmd + i;
         if (0 == mcli_strcmp(cmd->name, shell->argv[0], cmd_len))
         {
-            /*Found the command now try to execute it*/
+            /*Found the command now try to execute it / Нашел команду теперь попробуйте выполнить ее*/
             if (cmd->cmain)
             {
                 return cmd->cmain(argc, shell->argv);
