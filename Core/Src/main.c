@@ -94,11 +94,11 @@ void StartDefaultTask(void *argument);
 //для теста парсинга
 int tst_cmd_main(int argc, char ** argv){
     char bufPars[64];
-    char comand1[8]= *argv;
-    char comand2[8]= *argv+1;
+    //char comand1[8]= argv;
+    //char comand2[8]= argv+1;
   uint8_t lenbufPars;
 
-    if (comand1=="led3") {
+    if (**argv=='l') {
       HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
     }
     while (argc--){
