@@ -92,20 +92,26 @@ void StartDefaultTask(void *argument);
 /* USER CODE BEGIN PFP */
 //////////////////////////////////////////////////////////
 //для теста парсинга
+//(количество аргументов, указатель на массив с указателями)
 int tst_cmd_main(int argc, char ** argv){
     char bufPars[64];
-    //char comand1[8]= argv;
-    //char comand2[8]= argv+1;
-  uint8_t lenbufPars;
+    uint8_t lenbufPars;
 
-    if (**argv=='l') {
-      HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_SET);
-    }
+
+    if (*argv[1]=='1') {HAL_GPIO_WritePin(LD3_GPIO_Port, LD1_Pin, (GPIO_PinState)(*argv[2] - 0x30) );}
+    if (*argv[1]=='2') {HAL_GPIO_WritePin(LD3_GPIO_Port, LD2_Pin, (GPIO_PinState)(*argv[2] - 0x30) );}
+    if (*argv[1]=='3') {HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, (GPIO_PinState)(*argv[2] - 0x30) );}
+    if (*argv[1]=='0') {
+      HAL_GPIO_WritePin(LD3_GPIO_Port, LD1_Pin, (GPIO_PinState)(*argv[2] - 0x30) );
+      HAL_GPIO_WritePin(LD3_GPIO_Port, LD2_Pin, (GPIO_PinState)(*argv[2] - 0x30) );
+      HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, (GPIO_PinState)(*argv[2] - 0x30) );
+      }
+
+
     while (argc--){
         lenbufPars = sprintf(bufPars,"%s\r\n", *argv++);
         telnet_transmit((uint8_t*)(bufPars), lenbufPars);
     }
-    
     return 77;
 }
 
@@ -116,8 +122,18 @@ mcli_cmd_st tst_cmd[] = {
         .cmain = tst_cmd_main
     },
     {
+        .name = "led2",
+        .desc = "Test command 2",
+        .cmain = tst_cmd_main
+    },
+    {
         .name = "led3",
-        .desc = "Test command 1",
+        .desc = "Test command 3",
+        .cmain = tst_cmd_main
+    },
+    {
+        .name = "led",
+        .desc = "Led flash",
         .cmain = tst_cmd_main
     }
 };
@@ -125,6 +141,11 @@ mcli_cmd_st tst_cmd[] = {
 char * abuf[] = {0,0,0,0,0,0,0,0,0,0};
 
 MCLI_SHELL_DECL(tst_shell, tst_cmd, abuf);
+
+// #define MCLI_SHELL_DECL(shell, cmd, argv) 
+// mcli_shell_st           shell = {cmd,     argv,    sizeof(cmd)/sizeof(mcli_cmd_st),        sizeof(argv)/sizeof(char *)};
+//                     tst_shell = {tst_cmd, abuf,    sizeof(tst_cmd)/sizeof(mcli_cmd_st),    sizeof(abuf)/sizeof(char *)};
+//                     tst_shell = {tst_cmd, abuf,    количество записей массива tst_cmd ,    количество элементов массива abuf};
 
 //////////////////////////////////////////////////////////
 /* USER CODE END PFP */
@@ -236,8 +257,9 @@ static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
         // - возвращает колво символов литерации, если они входят в ограничение Арг3
         //
    
+    //printf("                  \nResult is: %d\n",   mcli_shell_parse(&tst_shell, tst_cmd_str2, sizeof(tst_cmd_str2)));
 
-    lenbufTN = sprintf(bufTN,"\r\nResult is: %d\r\n", mcli_shell_parse(&tst_shell, (char*)buff, sizeof(tst_cmd_str2)));
+    lenbufTN = sprintf(bufTN,"\r\nResult is: %d\r\n", mcli_shell_parse(&tst_shell, (char*)buff, len+1));
     telnet_transmit((uint8_t*)(bufTN), lenbufTN);
 
     //lenbufTN = sprintf(bufTN,"CMP(%s, %s) = %d\r\n", e, c, mcli_strcmp(a, e, sizeof(e)));
