@@ -175,6 +175,7 @@ struct tn_user tn_vadim = {"vadim", "qwerty", 0};
 
 struct comUser comGpio = {"led","on", "off", "?"};
 
+/*
 static int16_t comUserPars(uint8_t* buffCom, uint16_t lenCom){
   struct comUser prishli;
   uint16_t posSpace[8]={0,};
@@ -193,16 +194,17 @@ static int16_t comUserPars(uint8_t* buffCom, uint16_t lenCom){
     telnet_transmit((uint8_t*)(bufPars), lenbufPars);
     osDelay(5);
     return (int16_t)(countS);
-}
+}*/
 
 static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
-
   //В логине и пароле используются символы латиницы и цифры
   //но проверяется только первый символ
   //хорошо бы проверять все символы!
   char bufTN[64];
-  //int16_t res=0;
   uint8_t lenbufTN;
+  uint8_t counti=0;
+  uint8_t* buff2;
+  uint8_t re_buff[len+1];
   
   switch (tn_client.etap){
     case 0:
@@ -248,7 +250,10 @@ static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
       break;
   
     case 5:
-      if (buff[0]<0x30){tn_client.etap=5;}
+      buff2 = buff;
+      while (len--) {re_buff[counti++]=*(buff++);}
+      re_buff[len]='\0';
+      if (buff2[0]<0x30){tn_client.etap=5;}
       else {
         // int mcli_strlen(a, sizeof(a)) - выводит колво символов в строке а, если оно не больше 2го арг, иначе ошибка, а так же провер, не пустая ли строка а
         // int mcli_strcmp(a, a, sizeof(a)) - сравнивает строки 1й и 2й аргумент и входит ли он в размер 3й арг. Возв: 0-равны и входит,1-не равны,менше 0 -ошибка
@@ -259,58 +264,42 @@ static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
         // - возвращает колво символов литерации, если они входят в ограничение Арг3
         //
    
-    //printf("                  \nResult is: %d\n",   mcli_shell_parse(&tst_shell, tst_cmd_str2, sizeof(tst_cmd_str2)));
-
-    lenbufTN = sprintf(bufTN,"\r\nResult is: %d\r\n", mcli_shell_parse(&tst_shell, (char*)buff, len+1));
-    telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-
-    //lenbufTN = sprintf(bufTN,"CMP(%s, %s) = %d\r\n", e, c, mcli_strcmp(a, e, sizeof(e)));
-    //telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-
-    //lenbufTN = sprintf(bufTN,"STRTOK(%s, d1, 4) = %d\r\n", f, MCLI_STRTOK(&s, d1, 7));
-    //telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-
-        //lenbufTN = sprintf(bufTN, "CMP(%s, %s) = %d error\r\n", a, a, mcli_strcmp(a, a, 0));
-        //telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-
-
-            //lenbufTN = sprintf(bufTN, "Size: %d", res);
-        //telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-        //comUserPars(buff,len);
-        // if (res != 0) {
-        //   lenbufTN = sprintf(bufTN, "Size: %d", res);
-        //   telnet_transmit((uint8_t*)(bufTN), lenbufTN);
-        // }
+        //printf("                  \nResult is: %d\n",   mcli_shell_parse(&tst_shell, tst_cmd_str2, sizeof(tst_cmd_str2)));
+        lenbufTN = sprintf(bufTN,"\r\nResult is: %d\r\n", mcli_shell_parse(&tst_shell, (char*)re_buff, len+1));
+        telnet_transmit((uint8_t*)(bufTN), lenbufTN);
       }
       break;
 
     default:
       break;
   }
-
 }
 
 static void (TNcommand_callback) ( uint8_t* cmd,  uint16_t len ){
-  
-  __NOP();
 }
 
 static void (TNbegin_callback) ( uint8_t* cmd,  uint16_t len ){
   char bufTN[64];
   uint8_t lenbufTN;
-
+  /*
+  uint8_t counti=0;
+  // тут сброс логина ВРЕМЕННО, т.к. существует опастность что вновь подключившийся(сразу отвалится) обнулит ЛОГИН
+  while (counti++ != (SIZE_LOGIN-1)) {tn_client.name[counti]=0; tn_client.pas[counti]=0;}
+  tn_client.etap=0;
+  */
   lenbufTN = sprintf(bufTN, "Hi user! Press to Enter...\r\n");
-   telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+  telnet_transmit((uint8_t*)(bufTN), lenbufTN);
 }
 
 static void (TNend_callback) ( uint8_t* cmd,  uint16_t len ){
   char bufTN[64];
   uint8_t lenbufTN;
-
+  uint8_t counti=0;
   // тут сброс логина
-  
+  while (counti++ != (SIZE_LOGIN-1)) {tn_client.name[counti]=0; tn_client.pas[counti]=0;}
+  tn_client.etap=0;
   lenbufTN = sprintf(bufTN, "Poka!\r\n");
-   telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+  telnet_transmit((uint8_t*)(bufTN), lenbufTN);
 }
 
 telnetCallBacksSt funcCB = {

@@ -186,18 +186,18 @@ int mcli_shell_parse(mcli_shell_st * shell, char * buf, int lim)
         if (i > 0)
         {
             int j;
-            /*Found something!*/
+            /*Found something! / Нашел что -то!*/
             if (0 == cmd_len)
             {
-                /*argv[0] is command name*/
+                /*argv[0] is command name / argv [0] это имя команды*/
                 cmd_len = i;
             }
-            /*Is it a new option?*/
+            /*Is it a new option? / Это новый вариант? */
             if (!is_str)
             {
                 shell->argv[argc++] = t_start;
             }
-            /*Try to find string delimiters*/
+            /*Try to find string delimiters / Попробуйте найти строковые делимиты*/
             for (j = 0; j < i; j++)
             {
 

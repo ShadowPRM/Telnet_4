@@ -23,7 +23,7 @@
             "cwd": "${workspaceFolder}",
             "executable": "${workspaceFolder}/build/Telnet_4.elf",
             "name": "Attach JLink",
-            "request": "attach",
+            "request":"attach",
             "type": "cortex-debug",
             "serverpath": "C:/VSARM/JLink/JLinkGDBServerCL.exe",
             "cpu": "cortex-m3",
