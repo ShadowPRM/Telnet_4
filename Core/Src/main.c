@@ -171,6 +171,8 @@ struct tn_user tn_client = {{0,}, {0,}, 0};
 struct tn_user tn_admin = {"admin", "admin", 0};
 struct tn_user tn_vadim = {"vadim", "qwerty", 0};
 
+//void *ukaz_tn_cl = &tn_client;
+
 struct comUser comGpio = {"led","on", "off", "?"};
 
 static int16_t comUserPars(uint8_t* buffCom, uint16_t lenCom){
@@ -289,7 +291,36 @@ static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
 }
 
 static void (TNcommand_callback) ( uint8_t* cmd,  uint16_t len ){
-  }
+  
+  __NOP();
+}
+
+static void (TNbegin_callback) ( uint8_t* cmd,  uint16_t len ){
+  char bufTN[64];
+  uint8_t lenbufTN;
+
+  lenbufTN = sprintf(bufTN, "Hi user! Press to Enter...\r\n");
+   telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+}
+
+static void (TNend_callback) ( uint8_t* cmd,  uint16_t len ){
+  char bufTN[64];
+  uint8_t lenbufTN;
+
+  // тут сброс логина
+  
+  lenbufTN = sprintf(bufTN, "Poka!\r\n");
+   telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+}
+
+telnetCallBacksSt funcCB = {
+  TNreceiver_callback,
+  TNcommand_callback,
+  TNbegin_callback,
+  TNend_callback
+};
+
+
 /* USER CODE END 0 */
 
 /**
@@ -501,7 +532,7 @@ void StartDefaultTask(void *argument)
   sprintf(buf_uart, "My ip: %s\r\n", ip4addr_ntoa(&gnetif.ip_addr));
   HAL_UART_Transmit(&huart3, (uint8_t*)buf_uart, strlen(buf_uart), 10);
 
-  telnet_create(23, TNreceiver_callback, TNcommand_callback);
+  telnet_create(23, &funcCB);
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
   /* Infinite loop */
   for(;;)

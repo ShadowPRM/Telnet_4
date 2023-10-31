@@ -15,6 +15,9 @@
         }
     ],
     "files.associations": {
-        "telnet_server.h": "c"
+        "telnet_server.h": "c",
+        "init.h": "c",
+        "lwip.h": "c",
+        "opt.h": "c"
     }
 }

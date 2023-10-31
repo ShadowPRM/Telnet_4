@@ -1,4 +1,14 @@
 /*
+ * telnet_server.h
+ *
+ *  Created on: Oct 19, 2023
+ *      Author: user
+ */
+
+#ifndef INC_TELNET_SERVER_H_
+#define INC_TELNET_SERVER_H_
+
+/*
  * MIT License
  *
  * Copyright (c) 2022 André Cascadan and Bruno Augusto Casu
@@ -27,8 +37,8 @@
  */
 
 /* 1 TAB = 4 Spaces */
-#ifndef _TELNET_H_
-#define _TELNET_H_
+#ifndef __TELNET_H__
+#define __TELNET_H__
 
 #include "FreeRTOS.h"
 #include "stream_buffer.h"
@@ -40,49 +50,44 @@
 
 #define TELNET_BUFF_SIZE 1024
 
-typedef void (*telnetCallBack)(uint8_t *data, uint16_t len);
-
-typedef struct {
-    telnetCallBack receiver;
-    telnetCallBack command;
-    telnetCallBack begin;
-    telnetCallBack end;
-} telnetCallBacksSt;
-
 typedef struct
 {
-    telnetCallBacksSt callback;
+	// Port do be listened in this telnet connection
+	uint16_t tcp_port;
 
-	struct netconn *conn;
-	struct netconn *client;
+	void (*receiver_callback)( uint8_t* buff, uint16_t len );
+	void (*command_callback) ( uint8_t* cmd,  uint16_t len );
 
-    osThreadId_t srv_task_handle;
 	osThreadId_t wrt_task_handle;
 	osThreadId_t rcv_task_handle;
 
-    SemaphoreHandle_t buff_mutex;    // Output buffer mutex
+	// Output buffer
+	uint8_t*          buff;
+	SemaphoreHandle_t buff_mutex;
+	uint16_t          buff_count;
+
+	uint8_t cmd_buff[10];
+	uint16_t cmd_len;
+
+	struct netconn *conn;
+	struct netconn *newconn;
 
 	enum
 	{
 		 TELNET_CONN_STATUS_NONE = 0,
 		 TELNET_CONN_STATUS_ACCEPTING,
 		 TELNET_CONN_STATUS_CONNECTED,
-		 TELNET_CONN_STATUS_CLOSING,
-		 TELNET_CONN_STATUS_ERROR
+		 TELNET_CONN_STATUS_CLOSING
 	} status;
 
-    uint16_t buff_count;             //Write buffer count
-    uint16_t cmd_len;                //command len
 
-	uint16_t tcp_port;               // Port do be listened in this telnet connection
+} telnet_t;
 
-	uint8_t buff[TELNET_BUFF_SIZE];  // Output buffer
-	uint8_t cmd_buff[10];            // Command buffer
-} telnetDscSt;
 
 /**
  * @brief Create a new instance of telnet server in a defined TCP port
  *
+ * @param instance           Pointer to the telnet connection handler
  * @param port               Number of the TCP connection Port
  * @param receiver_callback  Pointer to the receiver callback function.
  * @param command_callback   Exclusive callback to receive the telnet commands from client.
@@ -90,7 +95,10 @@ typedef struct
  *                           In this case, user is responsible to filter commands form
  *                           characters.
  */
-void telnet_create(uint16_t port, telnetCallBacksSt * user_callback);
+void telnet_create(uint16_t port,
+                    void (*receiver_callback)(uint8_t* buff, uint16_t len),
+                    void (*command_callback)(uint8_t* cmd,  uint16_t len));
+
 
 /**
  * @brief Sends data  to the client.
@@ -103,4 +111,5 @@ uint16_t telnet_transmit(uint8_t* data, uint16_t len);
 
 
 
-#endif /* _TELNET_H_ */
+#endif /* __TELNET_H__ */
+#endif /* INC_TELNET_SERVER_H_ */

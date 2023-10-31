@@ -29,7 +29,6 @@
 #include <string.h>
 
 /* USER CODE BEGIN 0 */
-
 /* USER CODE END 0 */
 /* Private function prototypes -----------------------------------------------*/
 /* ETH Variables initialization ----------------------------------------------*/

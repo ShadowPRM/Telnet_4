@@ -1,4 +1,12 @@
 /*
+ * telnet_server.c
+ *
+ *  Created on: Oct 19, 2023
+ *      Author:
+ */
+
+
+/*
  * MIT License
  *
  * Copyright (c) 2022 André Cascadan and Bruno Augusto Casu
@@ -39,9 +47,11 @@
 #include "main.h"
 
 #include "telnet_server.h"
+#include "mcli.h"
 
 // Текущая реализация позволяет только одно одно соединение Telnet (один экземпляр).
-static telnetDscSt telnet_instance;
+static telnet_t telnet_instance;
+static telnet_t* instance = &telnet_instance;
 
 /*
  *  Период опроса буфера TX = 10 мс
@@ -52,19 +62,12 @@ static telnetDscSt telnet_instance;
 static const TickType_t tx_cycle_period = pdMS_TO_TICKS(10);
 
 // Process input bytes
-static void process_incoming_bytes(uint8_t *data, int data_len);
+static void process_incoming_bytes(uint8_t *data, int data_len, telnet_t* inst_ptr);
 
 // Callback for netconn interface
 static void netconn_cb(struct netconn *conn, enum netconn_evt evt, u16_t len);
 
 // Task and attributes
-static const osThreadAttr_t srv_task_attributes =
-{
-    .name = "TelnetServerTask",
-    .priority = (osPriority_t) osPriorityNormal,
-    .stack_size = 256 * 4
-};
-
 static const osThreadAttr_t wrt_task_attributes =
 {
     .name = "TelnetWrtTask",
@@ -76,24 +79,50 @@ static const osThreadAttr_t rcv_task_attributes =
 {
     .name = "TelnetRcvTask",
     .priority = (osPriority_t) osPriorityNormal,
-    .stack_size = 256 * 4
+    .stack_size = (256) * 4
 };
 
 // Task functions
-static void srv_task(void *arg);
 static void wrt_task(void *arg);
 static void rcv_task(void *arg);
 
-void telnet_create(uint16_t port, telnetCallBacksSt * user_callback)
+void telnet_create(uint16_t port,
+                   void (*receiver_callback)(uint8_t* buff, uint16_t len),
+                   void (*command_callback)(uint8_t* cmd,  uint16_t len))
 {
-    // Stores the port of the TCP connection to the global array
-    telnet_instance.tcp_port = port;
+    err_t err;
 
     // Stores the callback pointers
-    telnet_instance.callback = *user_callback;
+    instance->receiver_callback = receiver_callback;
+    instance->command_callback  = command_callback;
 
-    // Start server task
-    telnet_instance.srv_task_handle = osThreadNew(srv_task, NULL, &srv_task_attributes);
+    // Initializes command buffer size
+    instance->cmd_len = 0;
+
+    // Stores the port of the TCP connection to the global array
+    instance->tcp_port = port;
+
+    // Starts local listening
+    instance->conn = netconn_new_with_callback(NETCONN_TCP, netconn_cb);
+    if (instance->conn == NULL)
+    {
+        return;
+    }
+
+    err = netconn_bind(instance->conn, NULL, port);
+    if (err != ERR_OK)
+    {
+        return;
+    }
+
+    netconn_listen(instance->conn);
+
+    // No connection still established
+    instance->status = TELNET_CONN_STATUS_NONE;
+
+    // Create the accept sentd task
+    instance->wrt_task_handle = osThreadNew(wrt_task, NULL, &wrt_task_attributes);
+    instance->rcv_task_handle = osThreadNew(rcv_task, NULL, &rcv_task_attributes);
 }
 
 /*
@@ -108,79 +137,16 @@ void netconn_cb(struct netconn *conn, enum netconn_evt evt, u16_t len)
         if (len == 0) // len = 0 means the connections is being opened or closed by the client
         {
             // Switch the connection status according to the current one
-            if (telnet_instance.status == TELNET_CONN_STATUS_ACCEPTING)
+            if (instance->status == TELNET_CONN_STATUS_ACCEPTING)
             {
-                telnet_instance.status = TELNET_CONN_STATUS_CONNECTED;
-                telnet_instance.callback.begin(NULL, 0);
+                instance->status = TELNET_CONN_STATUS_CONNECTED;
             }
             else
             {
-                if (telnet_instance.client == conn)
+                if (instance->newconn == conn)
                 {
-                    telnet_instance.status = TELNET_CONN_STATUS_CLOSING;
+                    instance->status = TELNET_CONN_STATUS_CLOSING;
                 }
-            }
-        }
-    }
-}
-
-/*
-Сервер, ждёт входящих запросов
- */
-static void srv_task(void *arg)
-{
-    struct netconn * client;
-    err_t err;
-
-    // Initializes data buffer
-    telnet_instance.buff_mutex = xSemaphoreCreateMutex();
-    telnet_instance.buff_count = 0;
-
-    // Initializes command buffer
-    telnet_instance.cmd_len = 0;
-
-    // No client right now
-    telnet_instance.client = NULL;
-
-    // Starts local listening
-    telnet_instance.conn = netconn_new_with_callback(NETCONN_TCP, netconn_cb);
-    if (telnet_instance.conn == NULL)
-    {
-        telnet_instance.status = TELNET_CONN_STATUS_ERROR;
-        return;
-    }
-
-    err = netconn_bind(telnet_instance.conn, NULL, telnet_instance.tcp_port);
-    if (err != ERR_OK)
-    {
-        telnet_instance.status = TELNET_CONN_STATUS_ERROR;
-        return;
-    }
-
-    netconn_listen(telnet_instance.conn);
-
-    telnet_instance.wrt_task_handle = osThreadNew(wrt_task, NULL, &wrt_task_attributes);
-    telnet_instance.rcv_task_handle = osThreadNew(rcv_task, NULL, &rcv_task_attributes);
-
-    /*
-     * Accept loop
-     * Stays waiting for a connection. If connection breaks, it waits for a new one.
-     */
-    telnet_instance.status = TELNET_CONN_STATUS_ACCEPTING;
-    for (;;)
-    {
-        err = netconn_accept(telnet_instance.conn, &client);
-        if (err == ERR_OK)
-        {
-            if (NULL == telnet_instance.client)
-            {
-                telnet_instance.client = client;
-            }
-            else
-            {
-                /*We can serve only one client*/
-                netconn_close(client);
-                netconn_delete(client);
             }
         }
     }
@@ -196,43 +162,76 @@ static void srv_task(void *arg)
  */
 static void wrt_task(void *arg)
 {
-    struct netconn * client;
+    err_t accept_err;
     //err_t err;
 
-    for (;;)
+    // create the buffer to accumulate bytes to be sent
+    instance->buff       = (uint8_t *)pvPortMalloc(sizeof(uint8_t) * TELNET_BUFF_SIZE);
+    instance->buff_mutex = xSemaphoreCreateMutex();
+    instance->buff_count = 0;
+
+    /*
+     * Accept loop
+     * Stays waiting for a connection. If connection breaks, it waits for a new one.
+     */
+    for(;;)
     {
-        client = telnet_instance.client;
-        if (NULL == client)
+        instance->status = TELNET_CONN_STATUS_ACCEPTING;
+        accept_err = netconn_accept(instance->conn, &instance->newconn);
+        if (accept_err == ERR_OK)
         {
-            vTaskDelay(tx_cycle_period);
-            continue;
-        }
+            telnet_transmit((uint8_t*)("Hi user! Press to Enter...\r\n"), 28);
+			
+            // Transfer loop
+            for(;;)
+            {
+                //netconn_close(instance->conn); // Stop listening.
+                vTaskDelay(tx_cycle_period);
 
-        /* We've got a client! */
-        for (;;)
-        {
-                xSemaphoreTake(telnet_instance.buff_mutex, portMAX_DELAY);
-                if ((telnet_instance.status == TELNET_CONN_STATUS_CONNECTED) && (telnet_instance.buff_count > 0))
+                xSemaphoreTake(instance->buff_mutex, portMAX_DELAY);
+
+                // Проверьте статус соединений перед отправкой байтов, если таковые имеются
+                if ((instance->status == TELNET_CONN_STATUS_CONNECTED) && (instance->buff_count > 0))
                 {
-                    netconn_write(client, telnet_instance.buff, telnet_instance.buff_count, NETCONN_COPY);
-                    telnet_instance.buff_count = 0;
+                    netconn_write(instance->newconn, instance->buff, instance->buff_count, NETCONN_COPY);
                 }
-                xSemaphoreGive(telnet_instance.buff_mutex);
 
-                if (telnet_instance.status == TELNET_CONN_STATUS_CLOSING)
+                instance->buff_count = 0;
+
+                xSemaphoreGive(instance->buff_mutex);
+
+                // Принудительно подключите соединения, если от клиента было обнаружено завершение
+                if (instance->status == TELNET_CONN_STATUS_CLOSING)
                 {
                     break;
                 }
+            }
 
-                vTaskDelay(tx_cycle_period);
+            netconn_close (instance->newconn);
+            netconn_delete(instance->newconn);
+
+/*             // Start listening again
+            netconn_delete(instance->conn);
+            instance->conn = netconn_new_with_callback(NETCONN_TCP, netconn_cb);
+
+            if (instance->conn == NULL)
+            {
+                return;
+            }
+
+            err = netconn_bind(instance->conn, NULL, instance->tcp_port);
+            if (err != ERR_OK)
+            {
+                return;
+            }
+
+            netconn_listen(instance->conn); */
+
+            // Никакой связи все еще не установлено
+            instance->status = TELNET_CONN_STATUS_NONE;
         }
-
-        telnet_instance.callback.end(NULL, 0);
-        telnet_instance.client = NULL;
-        telnet_instance.status = TELNET_CONN_STATUS_ACCEPTING;
-        netconn_close(client);
-        netconn_delete(client);
-    }
+    
+	}
 }
 
 /*
@@ -249,24 +248,24 @@ static void rcv_task(void *arg)
 
     for(;;)
     {
-        if ((telnet_instance.status != TELNET_CONN_STATUS_CONNECTED) || (NULL == telnet_instance.client))
+        if (instance->status != TELNET_CONN_STATUS_CONNECTED)
         {
             vTaskDelay(100); // * ничего не делай* задержка, если нет соединения.
         }
         else
         {
             // Итеративно считывает все доступные данные
-            recv_err = netconn_recv(telnet_instance.client, &rx_netbuf);
+            recv_err = netconn_recv(instance->newconn, &rx_netbuf);
             if (recv_err == ERR_OK)
             {
                 // Navigate trough netbuffs until dump all data
                 do
                 {
                     netbuf_data(rx_netbuf, &rx_data, &rx_data_len);
-                    process_incoming_bytes(rx_data, rx_data_len);
+                    process_incoming_bytes(rx_data, rx_data_len, instance);
+                    HAL_GPIO_TogglePin(LD1_GPIO_Port,LD1_Pin);
                 }
                 while (netbuf_next(rx_netbuf) >= 0);
-
                 netbuf_delete(rx_netbuf);
             }
         }
@@ -286,12 +285,12 @@ uint16_t telnet_transmit(uint8_t* data, uint16_t len)
 
     int sent = 0;
 
-    if (telnet_instance.buff_mutex == NULL)
+    if (instance->buff_mutex == NULL)
     {
         return 0;
     }
 
-    if (telnet_instance.status != TELNET_CONN_STATUS_CONNECTED)
+    if (instance->status != TELNET_CONN_STATUS_CONNECTED)
     {
         return 0;
     }
@@ -299,15 +298,15 @@ uint16_t telnet_transmit(uint8_t* data, uint16_t len)
     // Iterates until all bytes is fed to the buffer
     do
     {
-        xSemaphoreTake(telnet_instance.buff_mutex, portMAX_DELAY);
-        while ((len > 0) && (telnet_instance.buff_count < TELNET_BUFF_SIZE))
+        xSemaphoreTake(instance->buff_mutex, portMAX_DELAY);
+        while ((len > 0) && (instance->buff_count < TELNET_BUFF_SIZE))
         {
-            telnet_instance.buff[telnet_instance.buff_count] = data[sent];
-            ++telnet_instance.buff_count;
+            instance->buff[instance->buff_count] = data[sent];
+            ++instance->buff_count;
             ++sent;
             --len;
         }
-        xSemaphoreGive(telnet_instance.buff_mutex);
+        xSemaphoreGive(instance->buff_mutex);
 
         if (len > 0)
         {
@@ -326,12 +325,14 @@ uint16_t telnet_transmit(uint8_t* data, uint16_t len)
  * Отфильтровать команды Telnet из обычных символов и вызывает
  * Правильный обратный вызов пользователя.
  */
-static void process_incoming_bytes(uint8_t *data, int data_len)
+static void process_incoming_bytes (uint8_t *data, int data_len, telnet_t* inst_ptr)
 {
-    const uint8_t IAC  = 255; // See RFC 854 for details
-    const uint8_t WILL = 251;
+    //по наблюдениям из Шарк: команды состоят из 3 байт, идущих подряд:	0xff 'команда' 'значение клманды'
+	const uint8_t IAC  = 255; // See RFC 854 for details
+    const uint8_t WILL = 251; //Подкоманда: договориться о размере окна (и другие)
     const uint8_t DONT = 254;
     //const uint8_t SB   = 254; TODO: Parse Subnegotiation commands.
+	//253 - Эхо
 
     uint8_t* pbuf_payload = data;
     uint16_t pbuf_len     = data_len;
@@ -341,53 +342,56 @@ static void process_incoming_bytes(uint8_t *data, int data_len)
      *
      * В этом случае пользователь несет ответственность за отделение их от символов.
      */
-    if (telnet_instance.callback.command == NULL)
+    if (inst_ptr->command_callback == NULL)
     {
-        telnet_instance.callback.receiver(pbuf_payload, pbuf_len);
+        inst_ptr->receiver_callback(pbuf_payload, pbuf_len);
     }
     else
     {
         //If command callback IS defined, all bytes are filtered out from the characters
+		//Если определяется командный обратный вызов, все байты отфильтрованы из символов
         uint16_t char_offset   = 0;
         uint16_t char_ctr      = 0;
 
         for (int i = 0; i < pbuf_len; i++)
         {
             // Counting characters: Command buffer is empty and IAC not found
-            if ((telnet_instance.cmd_len == 0) && (pbuf_payload[i] != IAC))
+			// подсчет символов: командный буфер пуст, а IAC не найден
+            if ((inst_ptr->cmd_len == 0) && (pbuf_payload[i] != IAC))
             {
                 ++char_ctr;
                 // Counting command bytes
+				// подсчет командных байтов
             }
             else
             {
                 // Нашел IAC с командным буфером пустым:
-                if ((telnet_instance.cmd_len == 0) && (pbuf_payload[i] == IAC))
+                if ((inst_ptr->cmd_len == 0) && (pbuf_payload[i] == IAC))
                 {
                     // Обработайте символы, найденные до этого момента
                     if (char_ctr != 0)
                     {
-                        telnet_instance.callback.receiver(&pbuf_payload[char_offset], char_ctr);
+                        inst_ptr->receiver_callback(&pbuf_payload[char_offset], char_ctr);
                     }
 
-                    telnet_instance.cmd_buff[telnet_instance.cmd_len] = pbuf_payload[i];
-                    telnet_instance.cmd_len++;
+                    inst_ptr->cmd_buff[inst_ptr->cmd_len] = pbuf_payload[i];
+                    inst_ptr->cmd_len++;
                 }
-                else if ((telnet_instance.cmd_len == 1) && (pbuf_payload[i] >= WILL) && (pbuf_payload[i] <= DONT))
+                else if ((inst_ptr->cmd_len == 1) && (pbuf_payload[i] >= WILL) && (pbuf_payload[i] <= DONT))
                 {
-                    telnet_instance.cmd_buff[telnet_instance.cmd_len] = pbuf_payload[i];
-                    telnet_instance.cmd_len++;
+                    inst_ptr->cmd_buff[inst_ptr->cmd_len] = pbuf_payload[i];
+                    inst_ptr->cmd_len++;
                 }
-                else if (telnet_instance.cmd_len == 2 && (pbuf_payload[1] >= WILL) && (pbuf_payload[1] <= DONT))
+                else if (inst_ptr->cmd_len == 2 && (pbuf_payload[1] >= WILL) && (pbuf_payload[1] <= DONT))
                 {
-                    telnet_instance.cmd_buff[telnet_instance.cmd_len] = pbuf_payload[i];
-                    telnet_instance.cmd_len++;
+                    inst_ptr->cmd_buff[inst_ptr->cmd_len] = pbuf_payload[i];
+                    inst_ptr->cmd_len++;
 
                     // Process the command
-                    telnet_instance.callback.command(telnet_instance.cmd_buff,  telnet_instance.cmd_len);
+                    inst_ptr->command_callback(inst_ptr->cmd_buff,  inst_ptr->cmd_len);
 
                     // Restart counting characters. Erase command buffer.
-                    telnet_instance.cmd_len = 0;
+                    inst_ptr->cmd_len = 0;
                     char_offset = i+1;
                     char_ctr = 0;
                 }
@@ -397,7 +401,7 @@ static void process_incoming_bytes(uint8_t *data, int data_len)
         // Process the characters found at the end of buffer scanning
         if (char_ctr != 0)
         {
-            telnet_instance.callback.receiver(&pbuf_payload[char_offset], char_ctr);
+            inst_ptr->receiver_callback(&pbuf_payload[char_offset], char_ctr);
         }
     }
 }
