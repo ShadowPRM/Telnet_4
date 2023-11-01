@@ -82,7 +82,7 @@ static int cmd_cfg_get  (int argc, char ** argv);
 mcli_cmd_st wo_cmd[] = {
     {
         .name = "led",
-        .desc = "Led flash",
+        .desc = "\"led a b\"\t a-number led(1,2,3or0-all)\tb-1(ON) or 0(OFF)",
         .cmain = fun_cmd_main
     },
     {
@@ -303,7 +303,7 @@ static int fun_cmd_main(int argc, char ** argv){
         lenbufPars = sprintf(bufPars,"%s\r\n", *argv++);
         telnet_transmit((uint8_t*)(bufPars), lenbufPars);
     }
-    return 77;
+    return 0;
 }
 /*Quit the console*/
 static int cmd_quit(int argc, char ** argv){
