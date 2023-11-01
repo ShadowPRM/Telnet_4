@@ -24,6 +24,7 @@ SOFTWARE.
 
 #include "mcli.h"
 
+// int mcli_strlen (a, sizeof(a)) - выводит колво символов в строке а, если оно не больше 2го арг, иначе ошибка, а так же провер, не пустая ли строка а
 int mcli_strlen(char * str, int lim)
 {
     int i;
@@ -48,6 +49,7 @@ int mcli_strlen(char * str, int lim)
     return i;
 }
 
+// int mcli_strcmp(a, a, sizeof(a)) - сравнивает строки 1й и 2й аргумент и входит ли он в размер 3й арг. Возв: 0-равны и входит,1-не равны,менше 0 -ошибка
 int mcli_strcmp(char * a, char * b, int lim)
 {
     int ret = 0;
@@ -84,6 +86,7 @@ int mcli_strcmp(char * a, char * b, int lim)
     return ret;
 }
 
+// _mcli_is_in - проверяет символ строки, идентичен ли контрольному символу из строки d1. Возвращ: 1-да, 0-нет.
 static inline int _mcli_is_in(char c, const char * d, int dlen)
 {
     while (dlen--)
@@ -96,6 +99,10 @@ static inline int _mcli_is_in(char c, const char * d, int dlen)
     return 0;
 }
 
+// MCLI_STRTOK(pts, d, slim) (mcli_strtok(pts, d, slim, sizeof(d) - 1))
+// int mcli_strtok(char ** pts,const char * d, int slim, int dlen);
+// - находит в строке Арг1 символы строки Арг2 с ограничением длины проверки Арг3
+// - возвращает колво символов литерации, если они входят в ограничение Арг3
 int mcli_strtok(char ** pts, const char * d, int slim, int dlen)
 {
     char *s;

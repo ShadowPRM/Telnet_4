@@ -57,29 +57,6 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
-//////////////////////////////////////////////////////////
-//для теста парсинга
-char a[] = "mars";
-char b[] = "marsian";
-char c[] = "earth";
-char d[] = "\0";
-char e[] = "ololo";
-
-const char d0[] = "";
-const char d1[] = " ,_.\"";
-
-char f[] = "   Mars is_not_a \"star\"";
-
-char tst_cmd_str1[] = "rm -rf /";
-char tst_cmd_str2[] = "cmd0 a b c";
-char tst_cmd_str3[] = "cmd1 ololo ololo";
-char tst_cmd_str4[] = "cmd0 a \"b c\" d \"e f\" gg";
-char tst_cmd_str5[] = "cmd0 a \"b\"\"c\" d \"e f\" gg";
-char tst_cmd_str6[] = "cmd0 a b \"c";
-char tst_cmd_str7[] = "cmd1";
-
-
-//////////////////////////////////////////////////////////
 
 /* USER CODE END PV */
 
@@ -90,90 +67,97 @@ static void MX_USART3_UART_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
-//////////////////////////////////////////////////////////
-//для теста парсинга
-//(количество аргументов, указатель на массив с указателями)
-int tst_cmd_main(int argc, char ** argv){
-    char bufPars[64];
-    uint8_t lenbufPars;
+/*---------------------------------------------------------------------------*/
+/*Comand handlers*/
+static int fun_cmd_main (int argc, char ** argv);
+static int cmd_quit     (int argc, char ** argv);
+static int cmd_help     (int argc, char ** argv);
+static int cmd_mode_set (int argc, char ** argv);
+static int cmd_temp     (int argc, char ** argv);
+static int cmd_dist     (int argc, char ** argv);
+static int cmd_cfg_set  (int argc, char ** argv);
+static int cmd_cfg_get  (int argc, char ** argv);
 
-
-    if (*argv[1]=='1') {HAL_GPIO_WritePin(LD3_GPIO_Port, LD1_Pin, (GPIO_PinState)(*argv[2] - 0x30) );}
-    if (*argv[1]=='2') {HAL_GPIO_WritePin(LD3_GPIO_Port, LD2_Pin, (GPIO_PinState)(*argv[2] - 0x30) );}
-    if (*argv[1]=='3') {HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, (GPIO_PinState)(*argv[2] - 0x30) );}
-    if (*argv[1]=='0') {
-      HAL_GPIO_WritePin(LD3_GPIO_Port, LD1_Pin, (GPIO_PinState)(*argv[2] - 0x30) );
-      HAL_GPIO_WritePin(LD3_GPIO_Port, LD2_Pin, (GPIO_PinState)(*argv[2] - 0x30) );
-      HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, (GPIO_PinState)(*argv[2] - 0x30) );
-      }
-
-
-    while (argc--){
-        lenbufPars = sprintf(bufPars,"%s\r\n", *argv++);
-        telnet_transmit((uint8_t*)(bufPars), lenbufPars);
-    }
-    return 77;
-}
-
-mcli_cmd_st tst_cmd[] = {
-    {
-        .name = "led1",
-        .desc = "Test command 0",
-        .cmain = tst_cmd_main
-    },
-    {
-        .name = "led2",
-        .desc = "Test command 2",
-        .cmain = tst_cmd_main
-    },
-    {
-        .name = "led3",
-        .desc = "Test command 3",
-        .cmain = tst_cmd_main
-    },
+/*Command descriptors*/
+mcli_cmd_st wo_cmd[] = {
     {
         .name = "led",
         .desc = "Led flash",
-        .cmain = tst_cmd_main
+        .cmain = fun_cmd_main
+    },
+    {
+        .name = "help",
+        .desc = "The command <help> prints other commands description.\r\n Call: help <COMMAND>",
+        .cmain = cmd_help
+    },
+    {
+        .name = "quit",
+        .desc = "The <quit> halts debug console.",
+        .cmain = cmd_quit
+    },
+    {
+        .name = "mode_set",
+        .desc = "The command <mode_set> selects next debug mode.\r\n Call: mode_set <N>\r\n N - mode number (2,3,4).",
+        .cmain = cmd_mode_set
+    },
+    {
+        .name = "temp",
+        .desc = "The commmand <temp> measures and prints current MCU temperature.",
+        .cmain = cmd_temp
+    },
+    {
+        .name = "dist",
+        .desc = "The command <dist> measures and prints distance.",
+        .cmain = cmd_dist
+    },
+    {
+        .name = "cfg_set",
+        .desc = "The commmand <cfg_set> enables configuration mode.",
+        .cmain = cmd_cfg_set
+    },
+    {
+        .name = "cfg_get",
+        .desc = "The command <cfg_get> prints the device configuration.",
+        .cmain = cmd_cfg_get
     }
+    //WORKER_CFG_CMD /*Device specific command descriptors*/
 };
+/*---------------------------------------------------------------------------*/
+/*argv buffer*/
+char * abuf[] = {0,0,0,0,0};
 
-char * abuf[] = {0,0,0,0,0,0,0,0,0,0};
 
-MCLI_SHELL_DECL(tst_shell, tst_cmd, abuf);
+/**
+  * @brief  Объявление для формирования структуры типа mcli_shell_st.
+  *
+  * @note   define MCLI_SHELL_DECL(shell, cmd, argv) 
+  *         mcli_shell_st  shell = {cmd,    argv,    sizeof(cmd)/sizeof(mcli_cmd_st),        sizeof(argv)/sizeof(char *)};
+  *                     wo_shell = {wo_cmd, abuf,    sizeof(wo_cmd)/sizeof(mcli_cmd_st),    sizeof(abuf)/sizeof(char *)};
+  *                     wo_shell = {wo_cmd, abuf,    количество записей массива wo_cmd ,    количество элементов массива abuf};
+  *
+  * @param  tst_shell название структуры
+  * @param  wo_cmd структура из массивов типа mcli_cmd_st с искомой командой(.name), описанием и указателем на функцию-обработчик команды
+  * @param  abuf указатель на массив в котором временно хранятся указатели на команду и опции после парсинга входящих данных 
+  * 
+  * @retval None
+  */
+MCLI_SHELL_DECL(wo_shell, wo_cmd, abuf);
 
-// #define MCLI_SHELL_DECL(shell, cmd, argv) 
-// mcli_shell_st           shell = {cmd,     argv,    sizeof(cmd)/sizeof(mcli_cmd_st),        sizeof(argv)/sizeof(char *)};
-//                     tst_shell = {tst_cmd, abuf,    sizeof(tst_cmd)/sizeof(mcli_cmd_st),    sizeof(abuf)/sizeof(char *)};
-//                     tst_shell = {tst_cmd, abuf,    количество записей массива tst_cmd ,    количество элементов массива abuf};
-
-//////////////////////////////////////////////////////////
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-struct tn_user 
+typedef struct  
 {
   char name[SIZE_LOGIN];
   char pas[SIZE_LOGIN];
   char etap;
-};
+}tn_user;
 
-struct comUser{
-  char com1[SIZE_COMM];
-  char com2[SIZE_COMM];
-  char com3[SIZE_COMM];
-  char com4[SIZE_COMM];
-};
-
-struct tn_user tn_client = {{0,}, {0,}, 0};
-struct tn_user tn_admin = {"admin", "admin", 0};
-struct tn_user tn_vadim = {"vadim", "qwerty", 0};
-
-//void *ukaz_tn_cl = &tn_client;
-
-struct comUser comGpio = {"led","on", "off", "?"};
+tn_user tn_client = {{0,}, {0,}, 0};
+tn_user tn_admin = {"admin", "admin", 0};
+tn_user tn_vadim = {"vadim", "qwerty", 0};
 
 /*
 static int16_t comUserPars(uint8_t* buffCom, uint16_t lenCom){
@@ -253,19 +237,11 @@ static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
       buff2 = buff;
       while (len--) {re_buff[counti++]=*(buff++);}
       re_buff[len]='\0';
-      if (buff2[0]<0x30){tn_client.etap=5;}
+
+      if (buff2[0]<0x30) {tn_client.etap=5;}
       else {
-        // int mcli_strlen(a, sizeof(a)) - выводит колво символов в строке а, если оно не больше 2го арг, иначе ошибка, а так же провер, не пустая ли строка а
-        // int mcli_strcmp(a, a, sizeof(a)) - сравнивает строки 1й и 2й аргумент и входит ли он в размер 3й арг. Возв: 0-равны и входит,1-не равны,менше 0 -ошибка
-        // _mcli_is_in - проверяет символ строки, идентичен ли контрольному символу из строки d1. Возвращ: 1-да, 0-нет.
-        // MCLI_STRTOK(pts, d, slim) (mcli_strtok(pts, d, slim, sizeof(d) - 1))
-        // int mcli_strtok(char ** pts,const char * d, int slim, int dlen);
-        // - находит в строке Арг1 символы строки Арг2 с ограничением длины проверки Арг3
-        // - возвращает колво символов литерации, если они входят в ограничение Арг3
-        //
-   
         //printf("                  \nResult is: %d\n",   mcli_shell_parse(&tst_shell, tst_cmd_str2, sizeof(tst_cmd_str2)));
-        lenbufTN = sprintf(bufTN,"\r\nResult is: %d\r\n", mcli_shell_parse(&tst_shell, (char*)re_buff, len+1));
+        lenbufTN = sprintf(bufTN,"------------\r\nResult is: %d\r\n------------\r\n", mcli_shell_parse(&wo_shell, (char*)re_buff, len+1));
         telnet_transmit((uint8_t*)(bufTN), lenbufTN);
       }
       break;
@@ -292,14 +268,14 @@ static void (TNbegin_callback) ( uint8_t* cmd,  uint16_t len ){
 }
 
 static void (TNend_callback) ( uint8_t* cmd,  uint16_t len ){
-  char bufTN[64];
-  uint8_t lenbufTN;
+  //char bufTN[64];
+  //uint8_t lenbufTN;
   uint8_t counti=0;
   // тут сброс логина
   while (counti++ != (SIZE_LOGIN-1)) {tn_client.name[counti]=0; tn_client.pas[counti]=0;}
   tn_client.etap=0;
-  lenbufTN = sprintf(bufTN, "Poka!\r\n");
-  telnet_transmit((uint8_t*)(bufTN), lenbufTN);
+  //lenbufTN = sprintf(bufTN, "Poka!\r\n");
+  //telnet_transmit((uint8_t*)(bufTN), lenbufTN);
 }
 
 telnetCallBacksSt funcCB = {
@@ -309,6 +285,87 @@ telnetCallBacksSt funcCB = {
   TNend_callback
 };
 
+/*===========================================================================*/
+/*Command handlers*/
+static int fun_cmd_main(int argc, char ** argv){
+    char bufPars[64];
+    uint8_t lenbufPars;
+
+    if (*argv[1]=='1') {HAL_GPIO_WritePin(LD3_GPIO_Port, LD1_Pin, (GPIO_PinState)(*argv[2] - 0x30) );}
+    if (*argv[1]=='2') {HAL_GPIO_WritePin(LD3_GPIO_Port, LD2_Pin, (GPIO_PinState)(*argv[2] - 0x30) );}
+    if (*argv[1]=='3') {HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, (GPIO_PinState)(*argv[2] - 0x30) );}
+    if (*argv[1]=='0') {
+      HAL_GPIO_WritePin(LD3_GPIO_Port, LD1_Pin, (GPIO_PinState)(*argv[2] - 0x30) );
+      HAL_GPIO_WritePin(LD3_GPIO_Port, LD2_Pin, (GPIO_PinState)(*argv[2] - 0x30) );
+      HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, (GPIO_PinState)(*argv[2] - 0x30) );
+      }
+    while (argc--){
+        lenbufPars = sprintf(bufPars,"%s\r\n", *argv++);
+        telnet_transmit((uint8_t*)(bufPars), lenbufPars);
+    }
+    return 77;
+}
+/*Quit the console*/
+static int cmd_quit(int argc, char ** argv){
+    char bufPars[64];
+    uint8_t lenbufPars;
+    uint8_t counti=0;
+
+    lenbufPars = sprintf(bufPars,"Halting the debug console!\r\n");
+    telnet_transmit((uint8_t*)(bufPars), lenbufPars);
+    
+    while (counti++ != (SIZE_LOGIN-1)) {tn_client.name[counti]=0; tn_client.pas[counti]=0;}// тут сброс логина
+    tn_client.etap=0;
+
+    return 0;
+}
+/*Help*/
+static int cmd_help(int argc, char ** argv){
+    int i;
+    char bufPars[128];
+    uint8_t lenbufPars;
+
+    if (2 != argc){   //команда из одной литерации, я так понмаю... можно навероно так '>'
+        /*Default behaviour*/
+        //lenbufPars = sprintf(bufPars,"%s\r\n", wo_shell.cmd[0].desc);
+        //telnet_transmit((uint8_t*)(bufPars), lenbufPars);
+        lenbufPars = sprintf(bufPars,"=====Command list:\r\n");
+        telnet_transmit((uint8_t*)(bufPars), lenbufPars);
+        for (i = 0; i < wo_shell.csz; i++){
+            lenbufPars = sprintf(bufPars,"%s\r\n", wo_shell.cmd[i].name);
+            telnet_transmit((uint8_t*)(bufPars), lenbufPars);
+        }
+        lenbufPars = sprintf(bufPars,"=====Call description: help <COMMAND>:\r\n");
+        telnet_transmit((uint8_t*)(bufPars), lenbufPars);
+        return 0;
+    }
+
+    for (i = 0; i < wo_shell.csz; i++){
+        const mcli_cmd_st * cmd;
+
+        cmd = wo_shell.cmd + i;
+        if (0 == mcli_strcmp(
+                    cmd->name,
+                    wo_shell.argv[1],
+                    //mcli_strlen(wo_shell.argv[1], sizeof(wo_data_buf) - (wo_shell.argv[1] - wo_data_buf)) //
+                    strlen(wo_shell.argv[1])
+                ))
+        {
+            /*Found the command, will print help string*/
+            lenbufPars = sprintf(bufPars,"=%s\r\n", cmd->desc);
+            telnet_transmit((uint8_t*)(bufPars), lenbufPars);
+            return 0;
+        }
+    }
+    lenbufPars = sprintf(bufPars,"Help: error: command not found!\r\n");
+    telnet_transmit((uint8_t*)(bufPars), lenbufPars);
+    return 0;
+}
+int cmd_mode_set (int argc, char ** argv){return 0;}
+int cmd_temp     (int argc, char ** argv){return 0;}
+int cmd_dist     (int argc, char ** argv){return 0;}
+int cmd_cfg_set  (int argc, char ** argv){return 0;}
+int cmd_cfg_get  (int argc, char ** argv){return 0;}
 
 /* USER CODE END 0 */
 
