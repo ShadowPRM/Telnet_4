@@ -28,6 +28,9 @@
 #include <stdio.h>
 #include "api.h"
 #include "mcli.h"
+#include "slipif.h"
+//#include "slipif.c"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,7 +60,7 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
-
+extern struct netif slnetif;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -77,6 +80,8 @@ static int cmd_temp     (int argc, char ** argv);
 static int cmd_dist     (int argc, char ** argv);
 static int cmd_cfg_set  (int argc, char ** argv);
 static int cmd_cfg_get  (int argc, char ** argv);
+
+static err_t slipif_output(struct netif *netif, struct pbuf *p);
 
 /*Command descriptors*/
 mcli_cmd_st wo_cmd[] = {
@@ -189,7 +194,10 @@ static void (TNreceiver_callback)( uint8_t* buff, uint16_t len ){
   uint8_t counti=0;
   uint8_t* buff2;
   uint8_t re_buff[len+1];
+  err_t err;
   
+  err = slipif_output(&slnetif, buff);
+
   switch (tn_client.etap){
     case 0:
       telnet_transmit((uint8_t*)("User Name> "), 11);
@@ -558,6 +566,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 extern struct netif gnetif;
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
