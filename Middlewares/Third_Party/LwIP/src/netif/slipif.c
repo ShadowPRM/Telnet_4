@@ -106,8 +106,10 @@ struct slipif_priv {
 
 /**
  * Send a pbuf doing the necessary SLIP encapsulation
+ * Отправить PBUF, выполняющий необходимую инкапсуляцию скольжения
  *
  * Uses the serial layer's sio_send()
+ * Использует sio_send () серийный слой ()
  *
  * @param netif the lwip network interface structure for this slipif
  * @param p the pbuf chain packet to send
@@ -198,7 +200,8 @@ slipif_output_v6(struct netif *netif, struct pbuf *p, const ip6_addr_t *ipaddr)
 
 /**
  * Handle the incoming SLIP stream character by character
- *
+ * Обработайте символ входящего потока скольжения по персонажу
+ * 
  * @param netif the lwip network interface structure for this slipif
  * @param c received character (multiple calls to this function will
  *        return a complete packet, NULL is returned before - used for polling)
@@ -304,6 +307,8 @@ slipif_rxbyte(struct netif *netif, u8_t c)
 
 /** Like slipif_rxbyte, but passes completed packets to netif->input
  *
+ * Как slipif_rxbyte, но передает заполненные пакеты на Netif-> вход
+ * 
  * @param netif The lwip network interface structure for this slipif
  * @param c received character
  */
@@ -421,7 +426,7 @@ slipif_init(struct netif *netif)
 
 /**
  * Polls the serial device and feeds the IP layer with incoming packets.
- *
+ * Опросите последовательное устройство и подает уровень IP с входящими пакетами.
  * @param netif The lwip network interface structure for this slipif
  */
 void
