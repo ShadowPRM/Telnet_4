@@ -69,6 +69,7 @@
 #include "lwip/sys.h"
 #include "lwip/sio.h"
 
+
 #define SLIP_END     0xC0 /* 0300: start and end of every packet */
 #define SLIP_ESC     0xDB /* 0333: escape start (one byte escaped data follows) */
 #define SLIP_ESC_END 0xDC /* 0334: following escape: original byte is 0xC0 (END) */
@@ -407,11 +408,11 @@ slipif_init(struct netif *netif)
 
   netif->state = priv;
 
-  /* initialize the snmp variables and counters inside the struct netif */
+  /* initialize the snmp variables and counters inside the struct netif / Инициализируйте переменные SNMP и счетчики внутри ntuct netif */
   MIB2_INIT_NETIF(netif, snmp_ifType_slip, SLIP_SIO_SPEED(priv->sd));
 
 #if SLIP_USE_RX_THREAD
-  /* Create a thread to poll the serial line. */
+  /* Create a thread to poll the serial line. / Создайте поток, чтобы опросить последовательную линию. */
   sys_thread_new(SLIPIF_THREAD_NAME, slipif_loop_thread, netif,
     SLIPIF_THREAD_STACKSIZE, SLIPIF_THREAD_PRIO);
 #endif /* SLIP_USE_RX_THREAD */

@@ -39,6 +39,7 @@ C_SOURCES =  \
 Core/Src/main.c \
 Core/Src/telnet_server.c \
 Core/Src/mcli.c \
+Core/Src/sio.c \
 Core/Src/freertos.c \
 Core/Src/stm32f2xx_it.c \
 Core/Src/stm32f2xx_hal_msp.c \

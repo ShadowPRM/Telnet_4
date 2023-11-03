@@ -28,6 +28,8 @@
 #include <stdio.h>
 #include "api.h"
 #include "mcli.h"
+#include "slipif.h"
+#include "sio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -367,6 +369,23 @@ int cmd_dist     (int argc, char ** argv){return 0;}
 int cmd_cfg_set  (int argc, char ** argv){return 0;}
 int cmd_cfg_get  (int argc, char ** argv){return 0;}
 
+
+
+/*
+void sio_send(u8_t c, sio_fd_t fd);
+u32_t sio_read(sio_fd_t fd, u8_t *data, u32_t len);
+sio_fd_t sio_open(u8_t devnum){
+  sio_fd_t sd;
+  sd = 0; // dummy code
+  return sd;
+}*/
+/*
+u8_t sio_recv(sio_fd_t fd);
+u32_t sio_tryread(sio_fd_t fd, u8_t *data, u32_t len);
+u32_t sio_write(sio_fd_t fd, u8_t *data, u32_t len);
+void sio_read_abort(sio_fd_t fd);
+*/
+
 /* USER CODE END 0 */
 
 /**
@@ -573,6 +592,9 @@ void StartDefaultTask(void *argument)
   MX_LWIP_Init();
   /* USER CODE BEGIN 5 */
   char buf_uart [64];
+  err_t err;
+
+  err = slipif_init(&gnetif);
 
   HAL_UART_Transmit(&huart3, (uint8_t*)"LWIP comlite!\r\n", 15, 10);
   sprintf(buf_uart, "My ip: %s\r\n", ip4addr_ntoa(&gnetif.ip_addr));
