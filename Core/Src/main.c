@@ -600,7 +600,7 @@ void StartDefaultTask(void *argument)
   sprintf(buf_uart, "My ip: %s\r\n", ip4addr_ntoa(&gnetif.ip_addr));
   HAL_UART_Transmit(&huart3, (uint8_t*)buf_uart, strlen(buf_uart), 10);
 
-  telnet_create(23, &funcCB);
+  //telnet_create(23, &funcCB);
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
   /* Infinite loop */
   for(;;)
