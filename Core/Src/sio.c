@@ -71,7 +71,7 @@ u32_t sio_write(sio_fd_t fd, u8_t *data, u32_t len)
 uint32_t errorUartSR = 0;
 #define FLAG_ERROR_QUEUE        (1 << 16)
 
-void USART2_IRQHandler(void)
+void USART3_IRQHandler(void)
 {
     if (UART_SLIP->SR & USART_SR_RXNE)                     // Прерывание по приему?
     {
