@@ -57,10 +57,10 @@ typedef void * sio_fd_t;
 
 #ifndef sio_open
 /**
- * Opens a serial device for communication.
+ * Opens a serial device for communication. Открывает последовательное устройство для связи.
  *
  * @param devnum device number
- * @return handle to serial device if successful, NULL otherwise
+ * @return handle to serial device if successful, NULL otherwise / обрабатывать серийное устройство, если успешно, но иначе
  */
 sio_fd_t sio_open(u8_t devnum);
 #endif
@@ -70,7 +70,7 @@ sio_fd_t sio_open(u8_t devnum);
  * Sends a single character to the serial device.
  *
  * @param c character to send
- * @param fd serial device handle
+ * @param fd serial device handle / Ручка последовательного устройства
  *
  * @note This function will block until the character can be sent.
  */

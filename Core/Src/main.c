@@ -29,7 +29,8 @@
 #include "api.h"
 #include "mcli.h"
 #include "slipif.h"
-#include "sio.h"
+//#include "slipif.c"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,6 +51,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart3;
+uint8_t preBUFF = 0;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -59,7 +61,7 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
-
+extern struct netif slnetif;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -79,6 +81,8 @@ static int cmd_temp     (int argc, char ** argv);
 static int cmd_dist     (int argc, char ** argv);
 static int cmd_cfg_set  (int argc, char ** argv);
 static int cmd_cfg_get  (int argc, char ** argv);
+
+static err_t slipif_output(struct netif *netif, struct pbuf *p);
 
 /*Command descriptors*/
 mcli_cmd_st wo_cmd[] = {
@@ -160,6 +164,7 @@ typedef struct
 tn_user tn_client = {{0,}, {0,}, 0};
 tn_user tn_admin = {"admin", "admin", 0};
 tn_user tn_vadim = {"vadim", "qwerty", 0};
+
 
 /*
 static int16_t comUserPars(uint8_t* buffCom, uint16_t lenCom){
@@ -370,21 +375,28 @@ int cmd_cfg_set  (int argc, char ** argv){return 0;}
 int cmd_cfg_get  (int argc, char ** argv){return 0;}
 
 
+//uint32_t errorUartSR = 0;
+//#define FLAG_ERROR_QUEUE        (1 << 16)
+//extern QueueHandle_t queueUART = NULL; ///очередь приемного буфера QueueHandle_t - тип - дескриптор очереди
 
-/*
-void sio_send(u8_t c, sio_fd_t fd);
-u32_t sio_read(sio_fd_t fd, u8_t *data, u32_t len);
-sio_fd_t sio_open(u8_t devnum){
-  sio_fd_t sd;
-  sd = 0; // dummy code
-  return sd;
-}*/
-/*
-u8_t sio_recv(sio_fd_t fd);
-u32_t sio_tryread(sio_fd_t fd, u8_t *data, u32_t len);
-u32_t sio_write(sio_fd_t fd, u8_t *data, u32_t len);
-void sio_read_abort(sio_fd_t fd);
-*/
+// /// @brief Калбэк по завершению приёма
+// void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
+//   if (huart==&huart3){
+//     uint8_t data = (uint8_t)preBUFF; //считываем
+//     HAL_UART_Receive_IT(&huart3, &preBUFF, 1); //запуск следующего приёма
+//     if (queueUART != NULL) //если у меня есть очередь
+//       {
+//         /// тут почемуто в аргумент Таймаут вставлен pdTRUE (логическая 1 или просто 1)
+//         /// используется специальная ф-я SendFromISR - для работы в прерывании
+//         if(xQueueSendFromISR(queueUART, (void *)(&data), pdTRUE) != pdTRUE)    //если есть очередь то кладу информацию в нее
+//           {
+//             //почему то не получилось положить в очередь
+//             errorUartSR |= FLAG_ERROR_QUEUE;
+//           }
+//       }
+//     else {;} /// если нет очереди
+//   }
+// }
 
 /* USER CODE END 0 */
 
@@ -418,7 +430,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_UART_Receive_IT(&huart3, &preBUFF, 1);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -577,6 +589,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 extern struct netif gnetif;
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -592,19 +605,19 @@ void StartDefaultTask(void *argument)
   MX_LWIP_Init();
   /* USER CODE BEGIN 5 */
   char buf_uart [64];
-  err_t err;
-
-  err = slipif_init(&gnetif);
 
   HAL_UART_Transmit(&huart3, (uint8_t*)"LWIP comlite!\r\n", 15, 10);
   sprintf(buf_uart, "My ip: %s\r\n", ip4addr_ntoa(&gnetif.ip_addr));
   HAL_UART_Transmit(&huart3, (uint8_t*)buf_uart, strlen(buf_uart), 10);
 
-  //telnet_create(23, &funcCB);
+  telnet_create(23, &funcCB);
+  slipif_init(&gnetif);
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+  
   /* Infinite loop */
   for(;;)
   {
+    slipif_poll(&gnetif);
     osDelay(1);
   }
   /* USER CODE END 5 */
