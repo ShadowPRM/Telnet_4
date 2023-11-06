@@ -17,6 +17,7 @@
             "runToEntryPoint": "main",
             "showDevDebugOutput": "none",
             "svdFile": "${workspaceFolder}/STM32F217.svd",
+            "serialNumber": "771579707",
             "servertype": "jlink"
         },
         {

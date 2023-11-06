@@ -29,7 +29,6 @@
 #include "api.h"
 #include "mcli.h"
 #include "slipif.h"
-//#include "slipif.c"
 
 /* USER CODE END Includes */
 
@@ -51,7 +50,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart3;
-uint8_t preBUFF = 0;
+
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -61,6 +60,7 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
+uint8_t preBUFF = 0;
 extern struct netif slnetif;
 /* USER CODE END PV */
 
@@ -606,11 +606,11 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
   char buf_uart [64];
 
-  HAL_UART_Transmit(&huart3, (uint8_t*)"LWIP comlite!\r\n", 15, 10);
+  //HAL_UART_Transmit(&huart3, (uint8_t*)"LWIP comlite!\r\n", 15, 10);
   sprintf(buf_uart, "My ip: %s\r\n", ip4addr_ntoa(&gnetif.ip_addr));
-  HAL_UART_Transmit(&huart3, (uint8_t*)buf_uart, strlen(buf_uart), 10);
+  //HAL_UART_Transmit(&huart3, (uint8_t*)buf_uart, strlen(buf_uart), 10);
 
-  telnet_create(23, &funcCB);
+  //telnet_create(23, &funcCB);
   slipif_init(&gnetif);
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
   
@@ -618,7 +618,7 @@ void StartDefaultTask(void *argument)
   for(;;)
   {
     slipif_poll(&gnetif);
-    osDelay(1);
+    //osDelay(1);
   }
   /* USER CODE END 5 */
 }

@@ -205,7 +205,7 @@ slipif_output_v6(struct netif *netif, struct pbuf *p, const ip6_addr_t *ipaddr)
  * @param netif the lwip network interface structure for this slipif
  * @param c received character (multiple calls to this function will
  *        return a complete packet, NULL is returned before - used for polling)
- * @return The IP packet when SLIP_END is received
+ * @return The IP packet when SLIP_END is received / IP -пакет при получении slip_end
  */
 static struct pbuf*
 slipif_rxbyte(struct netif *netif, u8_t c)
@@ -223,8 +223,8 @@ slipif_rxbyte(struct netif *netif, u8_t c)
     switch (c) {
     case SLIP_END:
       if (priv->recved > 0) {
-        /* Received whole packet. */
-        /* Trim the pbuf to the size of the received packet. */
+        /* Received whole packet. | Получил весь пакет */
+        /* Trim the pbuf to the size of the received packet. | Обрежьте PBUF до размера полученного пакета. */
         pbuf_realloc(priv->q, priv->recved);
 
         LINK_STATS_INC(link.recv);
@@ -264,7 +264,7 @@ slipif_rxbyte(struct netif *netif, u8_t c)
 
   /* byte received, packet not yet completely received */
   if (priv->p == NULL) {
-    /* allocate a new pbuf */
+    /* allocate a new pbuf  |  ВЫДЕЛЯЕТСЯ новый pbuf */
     LWIP_DEBUGF(SLIP_DEBUG, ("slipif_input: alloc\n"));
     priv->p = pbuf_alloc(PBUF_LINK, (PBUF_POOL_BUFSIZE - PBUF_LINK_HLEN - PBUF_LINK_ENCAPSULATION_HLEN), PBUF_POOL);
 
@@ -284,11 +284,12 @@ slipif_rxbyte(struct netif *netif, u8_t c)
     }
   }
 
-  /* this automatically drops bytes if > SLIP_MAX_SIZE */
+  /* this automatically drops bytes if > SLIP_MAX_SIZE | это автоматически сбрасывает байты, если> slip_max_size */
   if ((priv->p != NULL) && (priv->recved <= SLIP_MAX_SIZE)) {
-    ((u8_t *)priv->p->payload)[priv->i] = c;
-    priv->recved++;
-    priv->i++;
+    ((u8_t *)priv->p->payload)[priv->i] = c;           /// сохраняет принятый по УАРТ байт в массив payload в структуре priv->p
+    priv->recved++;                                    /// счётчик +1 записаных данных
+    priv->i++;                                         /// или это счётчик
+
     if (priv->i >= priv->p->len) {
       /* on to the next pbuf */
       priv->i = 0;
@@ -316,7 +317,7 @@ static void
 slipif_rxbyte_input(struct netif *netif, u8_t c)
 {
   struct pbuf *p;
-  p = slipif_rxbyte(netif, c);
+  p = slipif_rxbyte(netif, c);   /// обработка входящего (по УАРТ) символа и вроде как сохранение в pbuf->payload (или не сохраняет.. хз блин)
   if (p != NULL) {
     if (netif->input(p, netif) != ERR_OK) {
       pbuf_free(p);
@@ -440,7 +441,7 @@ slipif_poll(struct netif *netif)
 
   priv = (struct slipif_priv *)netif->state;
 
-  while (sio_tryread(priv->sd, &c, 1) > 0) {
+  while (sio_tryread(priv->sd, &c, 1) > 0) {    /// вычитывание байтов (по одному) из очереди (а та их получает из УАРТ)
     slipif_rxbyte_input(netif, c);
   }
 }
