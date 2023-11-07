@@ -45,7 +45,7 @@
 
 /** Set this to 1 to start a thread that blocks reading on the serial line
  * (using sio_read()).
- * Установите это на 1, чтобы запустить поток, который блокирует чтение на последовательной линии
+* Установите это на 1, чтобы запустить поток, который блокирует чтение на последовательной линии
  * (с помощью sio_read ()).
  */
 #ifndef SLIP_USE_RX_THREAD
@@ -56,7 +56,7 @@
  * If enabled, slipif_received_byte[s]() process incoming bytes and put assembled
  * packets on a queue, which is fed into lwIP from slipif_poll().
  * If disabled, slipif_poll() polls the serial line (using sio_tryread()).
- * 
+* 
  * Установите это на 1, чтобы включить функции проходить в RX Bytes из контекста ISR.
  * Если включено, slipif_received_byte [s] () процесс входящих байтов и поместить собрание
  * Пакеты на очереди, которая подается в LWIP от slipif_poll ().
@@ -69,7 +69,7 @@
 /** Set this to 1 (default for SLIP_RX_FROM_ISR) to queue incoming packets
  * received by slipif_received_byte[s]() as long as PBUF_POOL pbufs are available.
  * If disabled, packets will be dropped if more than one packet is received.
- * 
+* 
  * Установите это на 1 (по умолчанию для SLIP_RX_FROM_ISR) для очереди входящих пакетов
  * Получен с помощью slipif_received_byte [s] () до тех пор, пока доступны Pbufs pbuf_pool.
  * Если отключить, пакеты будут отброшены, если будет получено более одного пакета.

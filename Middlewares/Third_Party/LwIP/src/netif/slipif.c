@@ -43,14 +43,21 @@
  * @defgroup slipif SLIP netif
  * @ingroup addons
  *
- * This is an arch independent SLIP netif. The specific serial hooks must be
+ * This is an arch independent SLIP netif. The specific serial hooks must be 
  * provided by another file. They are sio_open, sio_read/sio_tryread and sio_send
+ * 
+ * Это независимая арха.Конкретные последовательные крючки должны быть 
+ * предоставлены другим файлом.Это sio_open, sio_read/sio_tryread и sio_send
  *
+ * Использование: этот Netif можно использовать тремя способами: \ n
  * Usage: This netif can be used in three ways:\n
+ * 
  *        1) For NO_SYS==0, an RX thread can be used which blocks on sio_read()
  *           until data is received.\n
+ * 
  *        2) In your main loop, call slipif_poll() to check for new RX bytes,
  *           completed packets are fed into netif->input().\n
+ * 
  *        3) Call slipif_received_byte[s]() from your serial RX ISR and
  *           slipif_process_rxqueue() from your main loop. ISR level decodes
  *           packets and puts completed packets on a queue which is fed into
@@ -106,10 +113,10 @@ struct slipif_priv {
 
 /**
  * Send a pbuf doing the necessary SLIP encapsulation
- * Отправить PBUF, выполняющий необходимую инкапсуляцию скольжения
+* Отправить PBUF, выполняющий необходимую инкапсуляцию скольжения
  *
  * Uses the serial layer's sio_send()
- * Использует sio_send () серийный слой ()
+* Использует sio_send () серийный слой ()
  *
  * @param netif the lwip network interface structure for this slipif
  * @param p the pbuf chain packet to send
@@ -201,7 +208,7 @@ slipif_output_v6(struct netif *netif, struct pbuf *p, const ip6_addr_t *ipaddr)
 /**
  * Handle the incoming SLIP stream character by character
  * Обработайте символ входящего потока скольжения по персонажу
- * 
+ *
  * @param netif the lwip network interface structure for this slipif
  * @param c received character (multiple calls to this function will
  *        return a complete packet, NULL is returned before - used for polling)
@@ -262,7 +269,7 @@ slipif_rxbyte(struct netif *netif, u8_t c)
     break;
   } /* end switch (priv->state) */
 
-  /* byte received, packet not yet completely received */
+  /* byte received, packet not yet completely received / Получен байт, пакет еще не полностью получен */
   if (priv->p == NULL) {
     /* allocate a new pbuf  |  ВЫДЕЛЯЕТСЯ новый pbuf */
     LWIP_DEBUGF(SLIP_DEBUG, ("slipif_input: alloc\n"));
@@ -308,7 +315,7 @@ slipif_rxbyte(struct netif *netif, u8_t c)
 
 /** Like slipif_rxbyte, but passes completed packets to netif->input
  *
- * Как slipif_rxbyte, но передает заполненные пакеты на Netif-> вход
+* Как slipif_rxbyte, но передает заполненные пакеты на Netif-> вход
  * 
  * @param netif The lwip network interface structure for this slipif
  * @param c received character
@@ -328,7 +335,7 @@ slipif_rxbyte_input(struct netif *netif, u8_t c)
 #if SLIP_USE_RX_THREAD
 /**
  * The SLIP input thread.
- *
+ * Задача приёма данных по УАРТ
  * Feed the IP layer with incoming packets
  *
  * @param nf the lwip network interface structure for this slipif
@@ -448,7 +455,7 @@ slipif_poll(struct netif *netif)
 
 #if SLIP_RX_FROM_ISR
 /**
- * Feeds the IP layer with incoming packets that were receive
+ * Feeds the IP layer with incoming packets that were receive / Подает IP -слой с входящими пакетами, которые были получены
  *
  * @param netif The lwip network interface structure for this slipif
  */

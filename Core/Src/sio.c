@@ -1,4 +1,4 @@
-#include "lwip/sio.h"s
+#include "lwip/sio.h"
 //#include "uart.h"
 #include "netif/slipif.h"
 #include "common.h"
@@ -7,6 +7,9 @@
 #include "queue.h"
 
 extern UART_HandleTypeDef huart3;
+extern UART_HandleTypeDef huart2;
+
+#define numUART huart3
 
 void task_rrintErrorUart(void *p);
 
@@ -46,7 +49,8 @@ void sio_send(u8_t c, sio_fd_t fd)
 {
     LWIP_UNUSED_ARG(fd);
     //writeUartData(c, UART_SLIP);
-    HAL_UART_Transmit(&huart3, &c, 1, 1);
+    HAL_UART_Transmit(&numUART, &c, 1, 1);
+    HAL_UART_Transmit(&huart2, &c, 1, 1);
 }
 
 /// @brief фун-я СЧИТЫВАНИЯ байта из очереди ///////////////////////////////////////////////////
@@ -110,9 +114,9 @@ uint32_t errorUartSR = 0;
 extern uint8_t preBUFF;
 /// @brief Калбэк по завершению приёма
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-  if (huart==&huart3){
+  if (huart==&numUART){
     uint8_t data = (uint8_t)preBUFF; //считываем
-    HAL_UART_Receive_IT(&huart3, &preBUFF, 1); //запуск следующего приёма
+    HAL_UART_Receive_IT(&numUART, &preBUFF, 1); //запуск следующего приёма
     if (queueUART != NULL) //если у меня есть очередь
       {
         /// тут почемуто в аргумент Таймаут вставлен pdTRUE (логическая 1 или просто 1)

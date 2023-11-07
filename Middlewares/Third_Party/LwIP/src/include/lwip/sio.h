@@ -30,7 +30,7 @@
 /*
  * This is the interface to the platform specific serial IO module
  * It needs to be implemented by those platforms which need SLIP or PPP
- * 
+* 
  * Это интерфейс для специфического последовательного модуля IO платформы
  * Он должен быть реализован этими платформами, которые нуждаются в скольжении или ГЧП
  * 

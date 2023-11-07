@@ -191,9 +191,9 @@ u32_t sio_read(sio_fd_t fd, u8_t *data, u32_t len)
 /**
  * Tries to read from the serial device. Same as sio_read but returns
  * immediately if no data is available and never blocks.
- * Пытается читать с последовательного устройства.То же, что и sio_read, но возвращает
+* Пытается читать с последовательного устройства.То же, что и sio_read, но возвращает
  * Сразу же, если данные не доступны и никогда не блокируются.
- * 
+ *
  * @param fd serial device handle
  * @param data pointer to data buffer for receiving
  * @param len maximum length (in bytes) of data to receive

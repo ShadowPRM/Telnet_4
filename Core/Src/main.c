@@ -49,8 +49,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
-
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -68,6 +68,7 @@ extern struct netif slnetif;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -266,7 +267,7 @@ static void (TNbegin_callback) ( uint8_t* cmd,  uint16_t len ){
   uint8_t lenbufTN;
   /*
   uint8_t counti=0;
-  // тут сброс логина ВРЕМЕННО, т.к. существует опастность что вновь подключившийся(сразу отвалится) обнулит ЛОГИН
+  // тут сброс логина ВРЕМЕННО, т.к. существует опастность что вновь подключившийся(сразу отвалится) обнулит ЛОГ�?Н
   while (counti++ != (SIZE_LOGIN-1)) {tn_client.name[counti]=0; tn_client.pas[counti]=0;}
   tn_client.etap=0;
   */
@@ -429,8 +430,10 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART3_UART_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart3, &preBUFF, 1);
+  HAL_UART_Receive_IT(&huart2, &preBUFF, 1);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -520,6 +523,39 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
   * @brief USART3 Initialization Function
   * @param None
   * @retval None
@@ -606,7 +642,7 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
   char buf_uart [64];
 
-  //HAL_UART_Transmit(&huart3, (uint8_t*)"LWIP comlite!\r\n", 15, 10);
+  HAL_UART_Transmit(&huart2, (uint8_t*)"LWIP comlite!\r\n", 15, 10);
   sprintf(buf_uart, "My ip: %s\r\n", ip4addr_ntoa(&gnetif.ip_addr));
   //HAL_UART_Transmit(&huart3, (uint8_t*)buf_uart, strlen(buf_uart), 10);
 
@@ -617,7 +653,9 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    slipif_poll(&gnetif);
+    //slipif_poll(&gnetif);
+    //gnetif->input(); - завершённый пакет
+    //slipif_process_rxqueue(&gnetif);
     //osDelay(1);
   }
   /* USER CODE END 5 */
