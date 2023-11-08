@@ -427,7 +427,7 @@ slipif_init(struct netif *netif)
 #if SLIP_USE_RX_THREAD
   /* Create a thread to poll the serial line. / Создайте поток, чтобы опросить последовательную линию. */
   sys_thread_new(SLIPIF_THREAD_NAME, slipif_loop_thread, netif,
-    SLIPIF_THREAD_STACKSIZE, SLIPIF_THREAD_PRIO);
+    SLIPIF_THREAD_STACKSIZE, 24); //SLIPIF_THREAD_PRIO
 #endif /* SLIP_USE_RX_THREAD */
   return ERR_OK;
 }

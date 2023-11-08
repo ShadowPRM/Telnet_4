@@ -37,6 +37,7 @@ sio_fd_t sio_open(u8_t devnum)
       /// создание задачи: task_rrintErrorUart-имя функ, ""-имя задачи(не использ ОС), 64-размер стека выделяемое задаче,
       /// NULL-значение, передаваемое в задачу(видимо не обязательное), 1-приоритет задачи, NULL-передаёт дескриптор создаваемой задачи
       /// возвращает pdPASS или pdFAIL тип BaseType_t
+    
     xTaskCreate(task_rrintErrorUart, "print error uart", 64, NULL, 1, NULL);
 
     return (sio_fd_t)UART_SLIP_SPEED;
@@ -49,7 +50,7 @@ void sio_send(u8_t c, sio_fd_t fd)
 {
     LWIP_UNUSED_ARG(fd);
     //writeUartData(c, UART_SLIP);
-    HAL_UART_Transmit(&numUART, &c, 1, 1);
+    HAL_UART_Transmit(&huart3, &c, 1, 1);
     HAL_UART_Transmit(&huart2, &c, 1, 1);
 }
 
@@ -112,11 +113,13 @@ u32_t sio_write(sio_fd_t fd, u8_t *data, u32_t len)
 uint32_t errorUartSR = 0;
 #define FLAG_ERROR_QUEUE        (1 << 16)
 extern uint8_t preBUFF;
+extern uint8_t preBUFF2;
+
 /// @brief Калбэк по завершению приёма
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
   if (huart==&numUART){
-    uint8_t data = (uint8_t)preBUFF; //считываем
-    HAL_UART_Receive_IT(&numUART, &preBUFF, 1); //запуск следующего приёма
+    uint8_t data = (uint8_t)preBUFF2; //считываем
+    HAL_UART_Receive_IT(&numUART, &preBUFF2, 1); //запуск следующего приёма
     if (queueUART != NULL) //если у меня есть очередь
       {
         /// тут почемуто в аргумент Таймаут вставлен pdTRUE (логическая 1 или просто 1)
@@ -130,11 +133,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
     else {;} /// если нет очереди
   }
 }
-/*
+
+
 /// @brief прерывание по приёму (правильное, со всеми проверками) и
 /// отправка в очередь полученного байта "uint8_t data" ///////////////////////////////////////////////////
 /// @param  
-void USART2_IRQHandler(void)
+/*void USART3_IRQHandler(void)
 {
     if (UART_SLIP->SR & USART_SR_RXNE)                     // Прерывание по приему?
     {
@@ -162,8 +166,8 @@ void USART2_IRQHandler(void)
 
         /// по пиему данных надо делать чтобы отправлялись в функцию в uart.c  ?????????????????????????????
     }
-}
-*/
+}*/
+
 
 /// @brief задача проверяющая состояние УАРТА ///////////////////////////////////////////////////
 /// @param p 

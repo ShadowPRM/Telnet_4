@@ -61,6 +61,7 @@ const osThreadAttr_t defaultTask_attributes = {
 };
 /* USER CODE BEGIN PV */
 uint8_t preBUFF = 0;
+uint8_t preBUFF2 = 0;
 extern struct netif slnetif;
 /* USER CODE END PV */
 
@@ -433,7 +434,7 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart3, &preBUFF, 1);
-  HAL_UART_Receive_IT(&huart2, &preBUFF, 1);
+  HAL_UART_Receive_IT(&huart2, &preBUFF2, 1);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -538,7 +539,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 9600;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -571,7 +572,7 @@ static void MX_USART3_UART_Init(void)
 
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 115200;
+  huart3.Init.BaudRate = 9600;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;
@@ -625,6 +626,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 extern struct netif gnetif;
+struct netif slnetif;
 
 /* USER CODE END 4 */
 
@@ -642,12 +644,12 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
   char buf_uart [64];
 
-  HAL_UART_Transmit(&huart2, (uint8_t*)"LWIP comlite!\r\n", 15, 10);
+  //HAL_UART_Transmit(&huart3, (uint8_t*)"LWIP comlite!\r\n", 15, 10);
   sprintf(buf_uart, "My ip: %s\r\n", ip4addr_ntoa(&gnetif.ip_addr));
   //HAL_UART_Transmit(&huart3, (uint8_t*)buf_uart, strlen(buf_uart), 10);
 
   //telnet_create(23, &funcCB);
-  slipif_init(&gnetif);
+  slipif_init(&slnetif);
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
   
   /* Infinite loop */
