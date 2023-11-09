@@ -499,11 +499,11 @@ static struct pbuf * low_level_input(struct netif *netif)
 }
 
 /**
- * This function should be called when a packet is ready to be read
- * from the interface. It uses the function low_level_input() that
- * should handle the actual reception of bytes from the network
- * interface. Then the type of the received packet is determined and
- * the appropriate input function is called.
+ * Эта функция должна быть вызвана, когда пакет готов к чтению
+ * Из интерфейса.Он использует функцию low_level_input (), что
+ * следует обрабатывать фактический прием байтов из сети
+ * Интерфейс.Тогда тип полученного пакета определяется и
+ * Соответствующая входная функция вызывается.
  *
  * @param netif the lwip network interface structure for this ethernetif
  */

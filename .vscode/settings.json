@@ -21,6 +21,13 @@
         "init.h": "c",
         "lwip.h": "c",
         "opt.h": "c",
-        "common.h": "c"
+        "common.h": "c",
+        "netif.h": "c",
+        "etharp.h": "c",
+        "stats.h": "c",
+        "snmp.h": "c",
+        "dhcp.h": "c",
+        "autoip.h": "c",
+        "ethernet.h": "c"
     }
 }

@@ -102,7 +102,7 @@ enum slipif_recv_state {
 
 struct slipif_priv {
   sio_fd_t sd;
-  /* q is the whole pbuf chain for a packet, p is the current pbuf in the chain */
+  /* q is the whole pbuf chain for a packet, p is the current pbuf in the chain / Q - целая цепь PBUF для пакета, P - текущий PBUF в цепи*/
   struct pbuf *p, *q;
   u8_t state;
   u16_t i, recved;
@@ -111,6 +111,10 @@ struct slipif_priv {
 #endif
 };
 
+//extern err_t etharp_output(struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr);
+extern err_t tcpip_input(struct pbuf *p, struct netif *inp);
+
+////////////////////////////////////////////////////////////////////////////////////////////////// ИНКАПСУЛЯЦИЯ IP пакета (побайтово) и отправка в UART
 /**
  * Send a pbuf doing the necessary SLIP encapsulation
 * Отправить PBUF, выполняющий необходимую инкапсуляцию скольжения
@@ -168,9 +172,11 @@ slipif_output(struct netif *netif, struct pbuf *p)
 }
 
 #if LWIP_IPV4
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////// ОТПРАВКА В UART
 /**
  * Send a pbuf doing the necessary SLIP encapsulation
- *
+ * Отправить PBUF, выполняющий необходимую инкапсуляцию скольжения
  * Uses the serial layer's sio_send()
  *
  * @param netif the lwip network interface structure for this slipif
@@ -205,6 +211,7 @@ slipif_output_v6(struct netif *netif, struct pbuf *p, const ip6_addr_t *ipaddr)
 }
 #endif /* LWIP_IPV6 */
 
+/////////////////////////////////////////////////////////////////////////////////////////////////// ОБРАБОТКА принятых из UART
 /**
  * Handle the incoming SLIP stream character by character
  * Обработайте символ входящего потока скольжения по персонажу
@@ -313,6 +320,7 @@ slipif_rxbyte(struct netif *netif, u8_t c)
   return NULL;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////// отправка на ОБРАБОТКУ и СОХРАНЕНИЕ принятого байта
 /** Like slipif_rxbyte, but passes completed packets to netif->input
  *
 * Как slipif_rxbyte, но передает заполненные пакеты на Netif-> вход
@@ -326,18 +334,21 @@ slipif_rxbyte_input(struct netif *netif, u8_t c)
   struct pbuf *p;
   p = slipif_rxbyte(netif, c);   /// обработка входящего (по УАРТ) символа и вроде как сохранение в pbuf->payload (или не сохраняет.. хз блин)
   if (p != NULL) {
-    if (netif->input(p, netif) != ERR_OK) {
+    if (netif->input(p, netif) != ERR_OK) {     //опа.. похоже input пуст и изза этого сваливается в цикл ERR (тут должна выполнится фу-я, на которую указывает)
       pbuf_free(p);
     }
   }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////// ЗАДАЧА ПРИЁМА данных по UART
 #if SLIP_USE_RX_THREAD
 /**
  * The SLIP input thread.
  * Задача приёма данных по УАРТ
+ * 
  * Feed the IP layer with incoming packets
- *
+ * Поправить IP -слой с входящими пакетами
+ * 
  * @param nf the lwip network interface structure for this slipif
  */
 static void
@@ -348,13 +359,14 @@ slipif_loop_thread(void *nf)
   struct slipif_priv *priv = (struct slipif_priv *)netif->state;
 
   while (1) {
-    if (sio_read(priv->sd, &c, 1) > 0) {
-      slipif_rxbyte_input(netif, c);
+    if (sio_read(priv->sd, &c, 1) > 0) {    //приём
+      slipif_rxbyte_input(netif, c);        //обработка и сохранение
     }
   }
 }
 #endif /* SLIP_USE_RX_THREAD */
 
+///////////////////////////////////////////////////////////////////////////////////////////////// ИНИЦИАЛИЗАЦИЯ SLIP
 /**
  * SLIP netif initialization
  *
@@ -389,6 +401,14 @@ slipif_init(struct netif *netif)
   netif->name[1] = 'l';
 #if LWIP_IPV4
   netif->output = slipif_output_v4;
+  
+  ////////////////////////////////////////////////////////// дописал,вероятно поле было пустым и сваливалось в ERR
+  netif->input = tcpip_input;   //tcpip_input //slipif_rxbyte
+  //ip4addr_aton ( &("169.254.191.223"), &(netif->ip_addr) );
+  //ip4addr_aton ( &("255.255.255.000"), &(netif->netmask) );
+  //netif->input = etharp_output;    
+  ////////////////////////////////////////////////////////// дописал,вероятно поле было пустым и сваливалось в ERR
+
 #endif /* LWIP_IPV4 */
 #if LWIP_IPV6
   netif->output_ip6 = slipif_output_v6;
@@ -432,6 +452,7 @@ slipif_init(struct netif *netif)
   return ERR_OK;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////// функция ОПРОСА UART в общем цикле (цикле деф задачи)
 /**
  * Polls the serial device and feeds the IP layer with incoming packets.
  * Опросите последовательное устройство и подает уровень IP с входящими пакетами.
@@ -453,9 +474,10 @@ slipif_poll(struct netif *netif)
   }
 }
 
+//////////////////////////////////////////////////////////////////////////////// ПЕРЕДАЁТ на IP-уровень входящие пакеты, которые были получены
 #if SLIP_RX_FROM_ISR
 /**
- * Feeds the IP layer with incoming packets that were receive / Подает IP -слой с входящими пакетами, которые были получены
+ * Feeds the IP layer with incoming packets that were receive / Передает на IP-уровень входящие пакеты, которые были получены
  *
  * @param netif The lwip network interface structure for this slipif
  */
@@ -479,20 +501,21 @@ slipif_process_rxqueue(struct netif *netif)
     while ((q->len != q->tot_len) && (q->next != NULL)) {
       q = q->next;
     }
-    priv->rxpackets = q->next;
+    priv->rxpackets = q->next;                      //////////// вот он пакет, который пришёл из UART !0x2000f268 <memp_memory_PBUF_POOL_base+9152>
     q->next = NULL;
 #else /* SLIP_RX_QUEUE */
     priv->rxpackets = NULL;
 #endif /* SLIP_RX_QUEUE */
     SYS_ARCH_UNPROTECT(old_level);
-    if (netif->input(p, netif) != ERR_OK) {
+    if (netif->input(p, netif) != ERR_OK) {       /////////// Ф-Я
       pbuf_free(p);
     }
     SYS_ARCH_PROTECT(old_level);
   }
 }
 
-/** Like slipif_rxbyte, but queues completed packets.
+
+/** Like slipif_rxbyte, but queues completed packets. / Как slipif_rxbyte, но очереди заполнены пакетами.
  *
  * @param netif The lwip network interface structure for this slipif
  * @param data Received serial byte
@@ -530,6 +553,9 @@ slipif_rxbyte_enqueue(struct netif *netif, u8_t data)
 /**
  * Process a received byte, completed packets are put on a queue that is
  * fed into IP through slipif_process_rxqueue().
+ * 
+ * Обрабатывать полученный байт, заполненные пакеты помещают в очередь, которая
+ * Формируется в IP через slipif_process_rxqueue ().
  *
  * This function can be called from ISR if SYS_LIGHTWEIGHT_PROT is enabled.
  *
@@ -547,6 +573,9 @@ slipif_received_byte(struct netif *netif, u8_t data)
 /**
  * Process multiple received byte, completed packets are put on a queue that is
  * fed into IP through slipif_process_rxqueue().
+ * 
+ * Процесс несколько полученных байтов, заполненные пакеты помещают в очередь, которая
+ * Формируется в IP через slipif_process_rxqueue ().
  *
  * This function can be called from ISR if SYS_LIGHTWEIGHT_PROT is enabled.
  *
