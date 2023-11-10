@@ -102,7 +102,7 @@ void MX_LWIP_Init(void)
   }
   else
   {
-    /* When the netif link is down this function must be called */
+    /* Когда ссылка Netif не работает, эта функция должна быть вызвана */
     netif_set_down(&gnetif);
   }
 

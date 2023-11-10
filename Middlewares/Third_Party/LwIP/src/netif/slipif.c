@@ -111,8 +111,10 @@ struct slipif_priv {
 #endif
 };
 
-//extern err_t etharp_output(struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr);
-extern err_t tcpip_input(struct pbuf *p, struct netif *inp);
+// extern err_t etharp_output(struct netif *netif, struct pbuf *q, const ip4_addr_t *ipaddr);
+// extern err_t tcpip_input(struct pbuf *p, struct netif *inp);
+// extern low_level_output(struct netif *netif, struct pbuf *p);
+// extern void ethernetif_update_config(struct netif *netif);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////// ИНКАПСУЛЯЦИЯ IP пакета (побайтово) и отправка в UART
 /**
@@ -334,9 +336,16 @@ slipif_rxbyte_input(struct netif *netif, u8_t c)
   struct pbuf *p;
   p = slipif_rxbyte(netif, c);   /// обработка входящего (по УАРТ) символа и вроде как сохранение в pbuf->payload (или не сохраняет.. хз блин)
   if (p != NULL) {
+    //указатель p получаем когда примем весь пакет
+    HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
     if (netif->input(p, netif) != ERR_OK) {     //опа.. похоже input пуст и изза этого сваливается в цикл ERR (тут должна выполнится фу-я, на которую указывает)
       pbuf_free(p);
     }
+    //netif->link_callback (netif, p);
+    //low_level_output(netif, p);
+    //tcp_output(netif, p);
+    //etharp_output(netif, p, netif->ip_addr );
+    //пакет весь пришёл, можно попробовать отсюда отправить
   }
 }
 
@@ -403,10 +412,11 @@ slipif_init(struct netif *netif)
   netif->output = slipif_output_v4;
   
   ////////////////////////////////////////////////////////// дописал,вероятно поле было пустым и сваливалось в ERR
-  netif->input = tcpip_input;   //tcpip_input //slipif_rxbyte
+  //netif->input = tcpip_input;   //tcpip_input //slipif_rxbyte
   //ip4addr_aton ( &("169.254.191.223"), &(netif->ip_addr) );
   //ip4addr_aton ( &("255.255.255.000"), &(netif->netmask) );
-  //netif->input = etharp_output;    
+  //netif->linkoutput = low_level_output;
+  //netif->link_callback = ethernetif_update_config;
   ////////////////////////////////////////////////////////// дописал,вероятно поле было пустым и сваливалось в ERR
 
 #endif /* LWIP_IPV4 */
