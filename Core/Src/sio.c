@@ -38,7 +38,7 @@ sio_fd_t sio_open(u8_t devnum)
       /// NULL-значение, передаваемое в задачу(видимо не обязательное), 1-приоритет задачи, NULL-передаёт дескриптор создаваемой задачи
       /// возвращает pdPASS или pdFAIL тип BaseType_t
     
-    xTaskCreate(task_rrintErrorUart, "print error uart", 64, NULL, 1, NULL);
+    //xTaskCreate(task_rrintErrorUart, "print error uart", 64, NULL, 1, NULL);
 
     return (sio_fd_t)UART_SLIP_SPEED;
 }
@@ -118,13 +118,13 @@ extern uint8_t preBUFF2;
 /// @brief Калбэк по завершению приёма
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
   if (huart==&numUART){
-    uint8_t data = (uint8_t)preBUFF2; //считываем
+    uint8_t data = (uint8_t)preBUFF2; //сохранённый байт из UART
     HAL_UART_Receive_IT(&numUART, &preBUFF2, 1); //запуск следующего приёма
     if (queueUART != NULL) //если у меня есть очередь
       {
         /// тут почемуто в аргумент Таймаут вставлен pdTRUE (логическая 1 или просто 1)
         /// используется специальная ф-я SendFromISR - для работы в прерывании
-        if(xQueueSendFromISR(queueUART, (void *)(&data), pdTRUE) != pdTRUE)    //если есть очередь то кладу информацию в нее
+        if(xQueueSendFromISR(queueUART, (void *)(&data), (BaseType_t)pdTRUE) != pdTRUE)    //если есть очередь то кладу информацию в нее
           {
             //почему то не получилось положить в очередь
             errorUartSR |= FLAG_ERROR_QUEUE;

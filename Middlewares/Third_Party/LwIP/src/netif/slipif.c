@@ -119,10 +119,10 @@ struct slipif_priv {
 ////////////////////////////////////////////////////////////////////////////////////////////////// ИНКАПСУЛЯЦИЯ IP пакета (побайтово) и отправка в UART
 /**
  * Send a pbuf doing the necessary SLIP encapsulation
-* Отправить PBUF, выполняющий необходимую инкапсуляцию скольжения
+ * Отправить PBUF, выполняющий необходимую инкапсуляцию скольжения
  *
  * Uses the serial layer's sio_send()
-* Использует sio_send () серийный слой ()
+ * Использует sio_send () серийный слой ()
  *
  * @param netif the lwip network interface structure for this slipif
  * @param p the pbuf chain packet to send
@@ -338,13 +338,15 @@ slipif_rxbyte_input(struct netif *netif, u8_t c)
   if (p != NULL) {
     //указатель p получаем когда примем весь пакет
     HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
-    if (netif->input(p, netif) != ERR_OK) {     //опа.. похоже input пуст и изза этого сваливается в цикл ERR (тут должна выполнится фу-я, на которую указывает)
-      pbuf_free(p);
-    }
+
+    // if (netif->input(p, netif) != ERR_OK) {     //опа.. похоже input пуст и изза этого сваливается в цикл ERR (тут должна выполнится фу-я, на которую указывает)
+    //   pbuf_free(p);
+    // }
+    
     //netif->link_callback (netif, p);
     //low_level_output(netif, p);
     //tcp_output(netif, p);
-    //etharp_output(netif, p, netif->ip_addr );
+    etharp_output(netif, p, netif->ip_addr );
     //пакет весь пришёл, можно попробовать отсюда отправить
   }
 }
@@ -356,7 +358,7 @@ slipif_rxbyte_input(struct netif *netif, u8_t c)
  * Задача приёма данных по УАРТ
  * 
  * Feed the IP layer with incoming packets
- * Поправить IP -слой с входящими пакетами
+ * Передавайте на IP-уровень входящие пакеты
  * 
  * @param nf the lwip network interface structure for this slipif
  */
@@ -368,7 +370,7 @@ slipif_loop_thread(void *nf)
   struct slipif_priv *priv = (struct slipif_priv *)netif->state;
 
   while (1) {
-    if (sio_read(priv->sd, &c, 1) > 0) {    //приём
+    if (sio_read(priv->sd, &c, 1) > 0) {    //приём от UART (из очереди)
       slipif_rxbyte_input(netif, c);        //обработка и сохранение
     }
   }

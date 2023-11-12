@@ -84,7 +84,7 @@ static int cmd_dist     (int argc, char ** argv);
 static int cmd_cfg_set  (int argc, char ** argv);
 static int cmd_cfg_get  (int argc, char ** argv);
 
-static err_t slipif_output(struct netif *netif, struct pbuf *p);
+//static err_t slipif_output(struct netif *netif, struct pbuf *p);
 
 /*Command descriptors*/
 mcli_cmd_st wo_cmd[] = {
@@ -626,7 +626,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 extern struct netif gnetif;
-struct netif slnetif;
+//struct netif slnetif;
 
 /* USER CODE END 4 */
 
@@ -642,14 +642,15 @@ void StartDefaultTask(void *argument)
   /* init code for LWIP */
   MX_LWIP_Init();
   /* USER CODE BEGIN 5 */
-  char buf_uart [64];
+  //char buf_uart [64];
 
   //HAL_UART_Transmit(&huart3, (uint8_t*)"LWIP comlite!\r\n", 15, 10);
-  sprintf(buf_uart, "My ip: %s\r\n", ip4addr_ntoa(&gnetif.ip_addr));
+  //sprintf(buf_uart, "My ip: %s\r\n", ip4addr_ntoa(&gnetif.ip_addr));
   //HAL_UART_Transmit(&huart3, (uint8_t*)buf_uart, strlen(buf_uart), 10);
 
-  telnet_create(23, &funcCB);
-  //slipif_init(&gnetif);
+  //telnet_create(23, &funcCB);
+  //slnetif = gnetif;
+  slipif_init(&gnetif);
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
   
   /* Infinite loop */

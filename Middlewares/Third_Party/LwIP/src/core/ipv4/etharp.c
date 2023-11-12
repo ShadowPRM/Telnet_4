@@ -768,14 +768,14 @@ etharp_output_to_arp_index(struct netif *netif, struct pbuf *q, u8_t arp_idx)
 }
 
 /**
- * Resolve and fill-in Ethernet address header for outgoing IP packet.
+ * Установите и заполняйте заголовок адреса Ethernet для исходящего IP-пакета.
  *
- * For IP multicast and broadcast, corresponding Ethernet addresses
- * are selected and the packet is transmitted on the link.
+ * Для IP -многоадресной и трансляции соответствующих адресов Ethernet
+ * Выбираются, а пакет передается по ссылке.
  *
- * For unicast addresses, the packet is submitted to etharp_query(). In
- * case the IP address is outside the local network, the IP address of
- * the gateway is used.
+ * Для адресов одноадресной ковычки пакет отправляется в etharp_query ().В
+ * случай IP -адрес находится вне локальной сети, IP -адрес
+ * Ворота используется.
  *
  * @param netif The lwIP network interface which the IP packet will be sent on.
  * @param q The pbuf(s) containing the IP packet to be sent.
