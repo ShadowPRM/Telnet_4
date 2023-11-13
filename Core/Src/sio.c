@@ -118,9 +118,10 @@ extern uint8_t preBUFF2;
 
 /// @brief Калбэк по завершению приёма
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-  if (huart==&numUART){
-    uint8_t data = (uint8_t)preBUFF2; //сохранённый байт из UART
-    HAL_UART_Receive_IT(&numUART, &preBUFF2, 1); //запуск следующего приёма
+  if (huart==&huart3){
+    uint8_t data = (uint8_t)preBUFF; //сохранённый байт из UART
+    //HAL_UART_Receive_IT(&numUART, &preBUFF2, 1); //запуск следующего приёма
+    HAL_UART_Receive_IT(&huart3, &preBUFF, 1); //запуск следующего приёма
     if (queueUART != NULL) //если у меня есть очередь
       {
         /// тут почемуто в аргумент Таймаут вставлен pdTRUE (логическая 1 или просто 1)

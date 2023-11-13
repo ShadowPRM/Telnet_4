@@ -76,6 +76,8 @@
 #include "lwip/sys.h"
 #include "lwip/sio.h"
 
+#include "telnet_server.h"
+
 
 #define SLIP_END     0xC0 /* 0300: start and end of every packet */
 #define SLIP_ESC     0xDB /* 0333: escape start (one byte escaped data follows) */
@@ -343,10 +345,12 @@ slipif_rxbyte_input(struct netif *netif, u8_t c)
     //   pbuf_free(p);
     // }
     
+    if (telnet_transmit(p->payload, p->len) > 0) {pbuf_free(p);}
     //netif->link_callback (netif, p);
     //low_level_output(netif, p);
     //tcp_output(netif, p);
-    etharp_output(netif, p, netif->ip_addr );
+    //etharp_output(netif, p, netif->ip_addr );
+
     //пакет весь пришёл, можно попробовать отсюда отправить
   }
 }
@@ -377,6 +381,7 @@ slipif_loop_thread(void *nf)
 }
 #endif /* SLIP_USE_RX_THREAD */
 
+extern struct netif gnetif;
 ///////////////////////////////////////////////////////////////////////////////////////////////// ИНИЦИАЛИЗАЦИЯ SLIP
 /**
  * SLIP netif initialization
@@ -412,6 +417,21 @@ slipif_init(struct netif *netif)
   netif->name[1] = 'l';
 #if LWIP_IPV4
   netif->output = slipif_output_v4;
+  ////////////////////////////////////////////////////////// дописал
+  struct netif *p_gnetif;
+  p_gnetif = &gnetif;
+  netif->input = slipif_rxbyte_input;
+  netif->ip_addr = p_gnetif->ip_addr;
+  netif->netmask = p_gnetif->netmask;
+  netif->gw = p_gnetif->gw;
+  netif->mtu = p_gnetif->mtu;
+  netif->hwaddr_len = p_gnetif->hwaddr_len;
+  netif->hwaddr[0] = p_gnetif->hwaddr[0]; netif->hwaddr[3] = p_gnetif->hwaddr[3];
+  netif->hwaddr[1] = p_gnetif->hwaddr[1]; netif->hwaddr[4] = p_gnetif->hwaddr[4];
+  netif->hwaddr[2] = p_gnetif->hwaddr[2]; netif->hwaddr[5] = p_gnetif->hwaddr[5];
+  //мемкопи НЕ РАБОТАЕТ! пропадает свясь, нет коннекта!
+  //memcpy(p_gnetif->hwaddr, netif->hwaddr, netif->hwaddr_len);
+
   
   ////////////////////////////////////////////////////////// дописал,вероятно поле было пустым и сваливалось в ERR
   //netif->input = tcpip_input;   //tcpip_input //slipif_rxbyte
