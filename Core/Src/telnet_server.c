@@ -127,6 +127,8 @@ void netconn_cb(struct netconn *conn, enum netconn_evt evt, u16_t len)
 /*
 Сервер, ждёт входящих запросов
  */
+
+
 static void srv_task(void *arg)
 {
     struct netconn * client;
@@ -194,9 +196,12 @@ static void srv_task(void *arg)
  * Соединение/отключение также управляется этой задачей.
  *
  */
+extern struct netif slnetif;
+
 static void wrt_task(void *arg)
 {
     struct netconn * client;
+    
     //err_t err;
 
     for (;;)
@@ -215,6 +220,9 @@ static void wrt_task(void *arg)
                 if ((telnet_instance.status == TELNET_CONN_STATUS_CONNECTED) && (telnet_instance.buff_count > 0))
                 {
                     netconn_write(client, telnet_instance.buff, telnet_instance.buff_count, NETCONN_COPY);
+                    if ( slnetif->output (telnet_instance.buff, &slnetif)){
+                        
+                    }      //slipif_output_v4
                     telnet_instance.buff_count = 0;
                 }
                 xSemaphoreGive(telnet_instance.buff_mutex);

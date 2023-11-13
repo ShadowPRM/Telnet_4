@@ -626,7 +626,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 extern struct netif gnetif;
-//struct netif slnetif;
+struct netif slnetif;
 
 /* USER CODE END 4 */
 
@@ -648,9 +648,9 @@ void StartDefaultTask(void *argument)
   //sprintf(buf_uart, "My ip: %s\r\n", ip4addr_ntoa(&gnetif.ip_addr));
   //HAL_UART_Transmit(&huart3, (uint8_t*)buf_uart, strlen(buf_uart), 10);
 
-  //telnet_create(23, &funcCB);
+  telnet_create(23, &funcCB);
   //slnetif = gnetif;
-  slipif_init(&gnetif);
+  slipif_init(&slnetif);
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
   
   /* Infinite loop */
