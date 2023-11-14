@@ -197,10 +197,13 @@ static void srv_task(void *arg)
  *
  */
 extern struct netif slnetif;
+//struct netif* p_slnetif;
+//    p_slnetif = &slnetif;
 
 static void wrt_task(void *arg)
 {
     struct netconn * client;
+    
     
     //err_t err;
 
@@ -219,10 +222,11 @@ static void wrt_task(void *arg)
                 xSemaphoreTake(telnet_instance.buff_mutex, portMAX_DELAY);
                 if ((telnet_instance.status == TELNET_CONN_STATUS_CONNECTED) && (telnet_instance.buff_count > 0))
                 {
-                    netconn_write(client, telnet_instance.buff, telnet_instance.buff_count, NETCONN_COPY);
-                    // if ( slnetif->output (telnet_instance.buff, &slnetif)){
-                        
-                    // }      //slipif_output_v4
+                    //sio_write(NULL, telnet_instance.buff, telnet_instance.buff_count);
+                    //netconn_write(client, telnet_instance.buff, telnet_instance.buff_count, NETCONN_COPY);
+                    //if (p_slnetif. (p_slnetif, telnet_instance.buff, NULL) != 0){;} 
+                    //slipif_output(struct netif *netif, struct pbuf *p);
+                    //slipif_output_v4(p_slnetif, telnet_instance.buff, NULL);
                     telnet_instance.buff_count = 0;
                 }
                 xSemaphoreGive(telnet_instance.buff_mutex);
@@ -271,7 +275,13 @@ static void rcv_task(void *arg)
                 do
                 {
                     netbuf_data(rx_netbuf, &rx_data, &rx_data_len);
-                    process_incoming_bytes(rx_data, rx_data_len);
+                    //process_incoming_bytes(rx_data, rx_data_len);
+                    ///////////////////////////////////////////////
+                    sio_write(NULL, &rx_data, rx_data_len);
+                    //slipif_output_v4(&slnetif, struct pbuf *p, const ip4_addr_t *ipaddr);
+                    
+                    //sio_write(NULL, Tx_Bu, sizeof(Tx_Buff[0]));
+                    ///////////////////////////////////////////////
                 }
                 while (netbuf_next(rx_netbuf) >= 0);
 
