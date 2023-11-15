@@ -28,6 +28,10 @@
         "snmp.h": "c",
         "dhcp.h": "c",
         "autoip.h": "c",
-        "ethernet.h": "c"
+        "ethernet.h": "c",
+        "sio.h": "c",
+        "arch.h": "c",
+        "stdlib.h": "c",
+        "stdio.h": "c"
     }
 }

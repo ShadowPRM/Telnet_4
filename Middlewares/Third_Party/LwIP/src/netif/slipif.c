@@ -341,11 +341,11 @@ slipif_rxbyte_input(struct netif *netif, u8_t c)
     //указатель p получаем когда примем весь пакет
     HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 
-    // if (netif->input(p, netif) != ERR_OK) {     //опа.. похоже input пуст и изза этого сваливается в цикл ERR (тут должна выполнится фу-я, на которую указывает)
-    //   pbuf_free(p);
-    // }
+    if (netif->input(p, netif) != ERR_OK) {     //опа.. похоже input пуст и изза этого сваливается в цикл ERR (тут должна выполнится фу-я, на которую указывает)
+      pbuf_free(p);
+    }
     
-    if (telnet_transmit(p->payload, p->len) > 0) {pbuf_free(p);}
+    //if (telnet_transmit(p->payload, p->len) > 0) {pbuf_free(p);}
     //netif->link_callback (netif, p);
     //low_level_output(netif, p);
     //tcp_output(netif, p);
@@ -381,7 +381,7 @@ slipif_loop_thread(void *nf)
 }
 #endif /* SLIP_USE_RX_THREAD */
 
-extern struct netif gnetif;
+//extern struct netif gnetif;
 ///////////////////////////////////////////////////////////////////////////////////////////////// ИНИЦИАЛИЗАЦИЯ SLIP
 /**
  * SLIP netif initialization
