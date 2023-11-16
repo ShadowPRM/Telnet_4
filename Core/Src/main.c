@@ -650,7 +650,7 @@ void StartDefaultTask(void *argument)
 
   telnet_create(23, &funcCB);
   //slnetif = gnetif;
-  slipif_init(&slnetif);
+  //slipif_init(&slnetif);
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
   
   /* Infinite loop */
